@@ -70,7 +70,7 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
       <div className="space-y-3 py-6">
         <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium">
           <Disc3 className="w-4 h-4 animate-spin text-emerald-400" />
-          <span>Buscando no YouTube e plataformas de música...</span>
+          <span>Buscando no YouTube, SoundCloud e Jamendo...</span>
         </div>
         {[1, 2, 3, 4, 5, 6].map((n) => (
           <div
@@ -318,15 +318,25 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                     >
                       {track.artist}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {track.isUnrestricted && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-emerald-500/15 text-[9px] font-mono text-[#00ff88] border border-emerald-500/30 font-medium">
-                          <Check className="w-2.5 h-2.5" /> Sem Restrição
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                      {track.source === 'youtube' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-red-500/15 text-[9px] font-mono text-red-400 border border-red-500/30 font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500" /> YouTube
                         </span>
                       )}
-                      {track.source === 'audius' && (
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-purple-500/15 text-[9px] font-mono text-purple-300 border border-purple-500/30 font-medium">
-                          Audius Hi-Fi
+                      {track.source === 'soundcloud' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-orange-500/15 text-[9px] font-mono text-orange-400 border border-orange-500/30 font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> SoundCloud
+                        </span>
+                      )}
+                      {track.source === 'jamendo' && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-teal-500/15 text-[9px] font-mono text-teal-300 border border-teal-500/30 font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-teal-400" /> Jamendo Livre
+                        </span>
+                      )}
+                      {track.isUnrestricted && track.source !== 'jamendo' && track.source !== 'soundcloud' && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-[9px] font-mono text-[#00ff88] border border-emerald-500/30 font-medium">
+                          <Check className="w-2.5 h-2.5" /> Sem Restrição
                         </span>
                       )}
                       {track.viewCount && (

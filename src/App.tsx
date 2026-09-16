@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Maximize2, X } from 'lucide-react';
-import { Track, Playlist, AppSettings, SearchFilter, YouTubePlaylist } from './types';
+import { Track, Playlist, AppSettings, SearchFilter, YouTubePlaylist, MusicSource } from './types';
 import { storage } from './lib/storage';
 import { FEATURED_TRACKS } from './lib/curatedData';
 import { searchYouTube, fetchPlaylistTracks } from './lib/youtube';
@@ -31,6 +31,13 @@ export function App() {
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilter, setSearchFilter] = useState<SearchFilter>('TODOS');
+  const [searchSource, setSearchSource] = useState<MusicSource>('all');
+  const [countsBySource, setCountsBySource] = useState<{
+    all: number;
+    youtube: number;
+    jamendo: number;
+    soundcloud: number;
+  }>({ all: 0, youtube: 0, jamendo: 0, soundcloud: 0 });
   const [searchResults, setSearchResults] = useState<Track[]>([]);
   const [searchPlaylists, setSearchPlaylists] = useState<YouTubePlaylist[]>([]);
   const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
@@ -57,20 +64,28 @@ export function App() {
     setPlaylistsCount(storage.getPlaylists().length);
   };
 
-  const handleSearch = async (query: string, filter: SearchFilter) => {
+  const handleSearch = async (
+    query: string,
+    filter: SearchFilter = searchFilter,
+    source: MusicSource = searchSource
+  ) => {
     setSearchQuery(query);
     setSearchFilter(filter);
+    setSearchSource(source);
     setCurrentTab('search');
     setActiveArtistName(null);
     setIsSearching(true);
     setSearchError(null);
 
     try {
-      const response = await searchYouTube(query, filter);
+      const response = await searchYouTube(query, filter, source);
       setSearchResults(response.results || []);
       setSearchPlaylists(response.playlists || []);
       setSearchSuggestions(response.suggestions || []);
       setCorrectedQuery(response.correctedQuery);
+      if (response.countsBySource) {
+        setCountsBySource(response.countsBySource);
+      }
     } catch (err: any) {
       setSearchError('Ocorreu um erro ao pesquisar. Tente novamente.');
     } finally {
@@ -167,11 +182,13 @@ export function App() {
           </div>
 
           {/* Header Search Field (Visible on Desktop / Compact on Mobile) */}
-          <div className="flex-1 max-w-xl mx-auto">
+          <div className="flex-1 max-w-2xl mx-auto">
             <SearchBar
               onSearch={handleSearch}
               initialQuery={searchQuery}
               initialFilter={searchFilter}
+              initialSource={searchSource}
+              countsBySource={countsBySource}
             />
           </div>
 
@@ -182,7 +199,7 @@ export function App() {
         </header>
 
         {/* Dynamic Main Views */}
-        <div className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+        <div className="flex-1 p-3 sm:p-5 md:p-8 max-w-7xl mx-auto w-full">
           {activeArtistName ? (
             <ArtistView
               artistName={activeArtistName}
@@ -198,13 +215,14 @@ export function App() {
               onOpenArtist={handleOpenArtist}
               onSelectGenre={handleSelectGenre}
               onOpenPlaylists={() => setCurrentTab('playlists')}
+              onQuickSearch={(q, src) => handleSearch(q, 'TODOS', src || 'all')}
               currentTrack={player.currentTrack}
               isPlaying={player.isPlaying}
             />
           ) : currentTab === 'search' ? (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-extrabold text-white tracking-tight font-display">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight font-display">
                   {searchQuery ? (
                     <>
                       Resultados para "<span className="text-[#00ff88]">{searchQuery}</span>"
@@ -214,7 +232,7 @@ export function App() {
                   )}
                 </h1>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Vídeos, canais, álbuns e playlists completos do YouTube.
+                  Resultados integrados e unificados: YouTube, SoundCloud e Jamendo Livre.
                 </p>
               </div>
 
@@ -229,7 +247,7 @@ export function App() {
                 isPlaying={player.isPlaying}
                 onPlayTrack={(track, all) => player.playTrack(track, all)}
                 onPlayPlaylist={handlePlayYouTubePlaylist}
-                onSelectQuery={(q) => handleSearch(q, searchFilter)}
+                onSelectQuery={(q) => handleSearch(q, searchFilter, searchSource)}
                 onAddToPlaylist={(track) => setSelectedTrackForPlaylist(track)}
                 onOpenArtist={handleOpenArtist}
               />

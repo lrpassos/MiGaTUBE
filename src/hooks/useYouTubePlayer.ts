@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Track } from '../types';
 import { storage } from '../lib/storage';
+import { resolveStreamUrl } from '../lib/youtube';
 
 declare global {
   interface Window {
@@ -299,7 +300,7 @@ export function useYouTubePlayer() {
         setQueueIndex(calculatedIndex);
       }
 
-      // 1. Direct HTML5 audio stream (e.g. Audius open source)
+      // 1. Direct HTML5 audio stream (Jamendo, SoundCloud, Audius)
       if (track.audioUrl) {
         try {
           if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
@@ -316,6 +317,30 @@ export function useYouTubePlayer() {
           }
         } catch (audioErr) {
           console.warn('Error initiating audio stream', audioErr);
+        }
+        return;
+      }
+
+      // 1b. Lazy stream resolution (e.g. SoundCloud progressive transcodings)
+      if (track.sourceUrl && !track.youtubeId) {
+        try {
+          if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
+            playerRef.current.pauseVideo();
+          }
+          resolveStreamUrl(track.sourceUrl).then(streamUrl => {
+            if (streamUrl && audioRef.current) {
+              track.audioUrl = streamUrl;
+              audioRef.current.src = streamUrl;
+              audioRef.current.volume = (volume || 85) / 100;
+              audioRef.current.play().catch(err => console.warn('Audio play error:', err));
+              setIsPlaying(true);
+              if (track.durationSec) {
+                setDuration(track.durationSec);
+              }
+            }
+          });
+        } catch (scErr) {
+          console.warn('Error resolving stream', scErr);
         }
         return;
       }

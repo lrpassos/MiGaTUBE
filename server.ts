@@ -8,6 +8,11 @@ import {
   fetchPlaylistTracksLive,
   fetchYouTubeSuggestions,
 } from './server/youtubeScraper';
+import {
+  searchJamendo,
+  searchSoundCloud,
+  resolveSoundCloudStream,
+} from './server/musicSources';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
@@ -281,17 +286,10 @@ app.get('/api/youtube/playlist', async (req: Request, res: Response) => {
   return res.json({ tracks, playlistId, total: tracks.length });
 });
 
-// YouTube Official & Live Search API endpoint
-app.get('/api/youtube/search', async (req: Request, res: Response) => {
-  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-  const filter = (typeof req.query.filter === 'string' ? req.query.filter.toUpperCase() : 'TODOS');
+// Helper to search YouTube via official API or live scraper
+async function getYouTubeResults(query: string, filter: string) {
   const apiKey = process.env.YOUTUBE_API_KEY;
 
-  if (!query) {
-    return res.json({ results: [], playlists: [], suggestions: [], query: '', total: 0 });
-  }
-
-  // 1. If official API Key is configured in environment, try official Google API first
   if (apiKey) {
     try {
       const typeParam = filter === 'CANAIS' ? 'channel' : filter === 'PLAYLISTS' ? 'playlist' : 'video';
@@ -342,74 +340,177 @@ app.get('/api/youtube/search', async (req: Request, res: Response) => {
             type: isChannel ? 'channel' : isAudioVisual ? 'music' : 'video',
             viewCount: detail?.statistics?.viewCount ? `${(parseInt(detail.statistics.viewCount) / 1000000).toFixed(1)}M visualizações` : undefined,
             publishedAt: item.snippet.publishedAt,
+            source: 'youtube',
           };
         });
 
-        return res.json({
-          source: 'youtube_data_api_v3',
+        return {
           results: formatted,
-          query,
-          total: formatted.length,
-        });
+          playlists: [],
+          suggestions: [],
+          source: 'youtube_data_api_v3',
+        };
       }
     } catch (err) {
-      console.warn('Official YouTube API failed, engaging live web scraper', err);
+      console.warn('Official YouTube API failed, using scraper fallback', err);
     }
   }
 
-  // 2. High-performance live YouTube search engine (no API key required)
+  // 2. High-performance live YouTube scraper engine
   try {
     const liveData = await searchYouTubeLive(query, filter);
     if (liveData.results.length > 0 || liveData.playlists.length > 0) {
-      return res.json({
-        source: 'youtube_live_engine',
-        results: liveData.results,
-        playlists: liveData.playlists,
-        suggestions: liveData.suggestions,
+      return {
+        results: liveData.results.map((t: any) => ({ ...t, source: 'youtube' })),
+        playlists: liveData.playlists || [],
+        suggestions: liveData.suggestions || [],
         correctedQuery: liveData.correctedQuery,
-        query,
-        total: liveData.results.length,
-      });
+        source: 'youtube_live_engine',
+      };
     }
   } catch (liveErr) {
-    console.warn('Live search parser error, trying curated catalog fallback', liveErr);
+    console.warn('Live search parser error:', liveErr);
   }
 
-  // 3. Fallback engine: Searches curated database or returns contextual matching tracks
-  const cleanQ = query.toLowerCase();
-  let matched = MOCK_SEARCH_DATABASE.filter(item => {
-    return (
-      item.title.toLowerCase().includes(cleanQ) ||
-      item.artist.toLowerCase().includes(cleanQ) ||
-      (item.genre && item.genre.toLowerCase().includes(cleanQ)) ||
-      (item.album && item.album.toLowerCase().includes(cleanQ))
-    );
-  });
+  return { results: [], playlists: [], suggestions: [], source: 'none' };
+}
 
-  if (matched.length === 0) {
-    matched = MOCK_SEARCH_DATABASE.slice(0, 8).map((base, idx) => ({
-      ...base,
-      id: `gen-${idx}-${Date.now()}`,
-      title: `${query.charAt(0).toUpperCase() + query.slice(1)} - Faixa Especial #${idx + 1}`,
-      artist: query.toUpperCase(),
-    }));
+// Multi-Source Search Handler (YouTube, Jamendo, SoundCloud)
+async function handleMultiSourceSearch(req: Request, res: Response) {
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  const filter = (typeof req.query.filter === 'string' ? req.query.filter.toUpperCase() : 'TODOS');
+  const source = (typeof req.query.source === 'string' ? req.query.source.toLowerCase() : 'all');
+
+  if (!query) {
+    return res.json({
+      results: [],
+      playlists: [],
+      suggestions: [],
+      query: '',
+      total: 0,
+      countsBySource: { all: 0, youtube: 0, jamendo: 0, soundcloud: 0 },
+    });
   }
 
-  let filtered = matched;
-  if (filter === 'MÚSICAS') {
-    filtered = matched.filter(t => t.type === 'music');
-  } else if (filter === 'VÍDEOS') {
-    filtered = matched.filter(t => t.type === 'video');
-  }
+  try {
+    let ytResults: any[] = [];
+    let ytPlaylists: any[] = [];
+    let suggestions: string[] = [];
+    let correctedQuery: string | undefined;
+    let jamResults: any[] = [];
+    let scResults: any[] = [];
 
-  return res.json({
-    source: 'migatube_curated_engine',
-    results: filtered,
-    playlists: [],
-    suggestions: [query, `${query} greatest hits`, `${query} playlist`],
-    query,
-    total: filtered.length,
-  });
+    const promises: Promise<any>[] = [];
+
+    if (source === 'all' || source === 'youtube') {
+      promises.push(
+        getYouTubeResults(query, filter)
+          .then(data => {
+            ytResults = data.results || [];
+            ytPlaylists = data.playlists || [];
+            if (data.suggestions?.length) suggestions = data.suggestions;
+            if (data.correctedQuery) correctedQuery = data.correctedQuery;
+          })
+          .catch(e => console.warn('YouTube search failed:', e))
+      );
+    }
+
+    if (source === 'all' || source === 'jamendo') {
+      promises.push(
+        searchJamendo(query, 25)
+          .then(data => {
+            jamResults = data || [];
+          })
+          .catch(e => console.warn('Jamendo search failed:', e))
+      );
+    }
+
+    if (source === 'all' || source === 'soundcloud') {
+      promises.push(
+        searchSoundCloud(query, 25)
+          .then(data => {
+            scResults = data || [];
+          })
+          .catch(e => console.warn('SoundCloud search failed:', e))
+      );
+    }
+
+    await Promise.allSettled(promises);
+
+    let combinedResults: any[] = [];
+
+    if (source === 'youtube') {
+      combinedResults = ytResults;
+    } else if (source === 'jamendo') {
+      combinedResults = jamResults;
+    } else if (source === 'soundcloud') {
+      combinedResults = scResults;
+    } else {
+      // 'all': Interleave YouTube, SoundCloud, and Jamendo for a rich variety of results
+      const maxLen = Math.max(ytResults.length, scResults.length, jamResults.length);
+      for (let i = 0; i < maxLen; i++) {
+        if (ytResults[i]) combinedResults.push(ytResults[i]);
+        if (scResults[i]) combinedResults.push(scResults[i]);
+        if (jamResults[i]) combinedResults.push(jamResults[i]);
+      }
+    }
+
+    // Apply type filters
+    if (filter === 'MÚSICAS') {
+      combinedResults = combinedResults.filter(t => t.type === 'music');
+    } else if (filter === 'VÍDEOS') {
+      combinedResults = combinedResults.filter(t => t.type === 'video');
+    } else if (filter === 'SEM RESTRIÇÃO') {
+      combinedResults = combinedResults.filter(t => t.isUnrestricted || t.source === 'jamendo' || t.source === 'soundcloud');
+    }
+
+    // If completely empty, try contextual matching against curated items
+    if (combinedResults.length === 0 && ytPlaylists.length === 0) {
+      const cleanQ = query.toLowerCase();
+      const matched = MOCK_SEARCH_DATABASE.filter(item =>
+        item.title.toLowerCase().includes(cleanQ) ||
+        item.artist.toLowerCase().includes(cleanQ) ||
+        (item.genre && item.genre.toLowerCase().includes(cleanQ))
+      );
+      if (matched.length > 0) {
+        combinedResults = matched;
+      }
+    }
+
+    const totalCount = combinedResults.length + ytPlaylists.length;
+
+    return res.json({
+      source: `multi_source_${source}`,
+      results: combinedResults,
+      playlists: ytPlaylists,
+      suggestions: suggestions.length > 0 ? suggestions : [query, `${query} hits`, `${query} remix`, `${query} live`],
+      correctedQuery,
+      query,
+      total: totalCount,
+      countsBySource: {
+        all: ytResults.length + jamResults.length + scResults.length,
+        youtube: ytResults.length,
+        jamendo: jamResults.length,
+        soundcloud: scResults.length,
+      },
+    });
+  } catch (err) {
+    console.error('Search endpoint error:', err);
+    return res.status(500).json({ error: 'Search failed' });
+  }
+}
+
+// Multi-Source and YouTube search endpoints
+app.get('/api/music/search', handleMultiSourceSearch);
+app.get('/api/youtube/search', handleMultiSourceSearch);
+
+// Stream resolver for on-demand stream URLs (SoundCloud)
+app.get('/api/music/resolve', async (req: Request, res: Response) => {
+  const url = typeof req.query.url === 'string' ? req.query.url : '';
+  if (!url) return res.status(400).json({ error: 'Missing url parameter' });
+  const streamUrl = await resolveSoundCloudStream(url);
+  if (!streamUrl) return res.status(404).json({ error: 'Stream not found' });
+  return res.json({ streamUrl });
 });
 
 // Vite Middleware for Dev and Static server for Production

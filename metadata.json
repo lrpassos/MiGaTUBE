@@ -1,6 +1,6 @@
 {
   "name": "MiGaTUBE",
-  "description": "Aplicação moderna de música e vídeo com deck de vinil digital, VU meter, playlists, favoritos e integração oficial com YouTube.",
+  "description": "Aplicação moderna de música e vídeo com deck de vinil digital, VU meter, playlists e fontes unificadas de YouTube, SoundCloud e Jamendo.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

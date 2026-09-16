@@ -1,4 +1,4 @@
-import { Track, SearchFilter, SearchResponse, YouTubePlaylist } from '../types';
+import { Track, SearchFilter, SearchResponse, YouTubePlaylist, MusicSource } from '../types';
 import { FEATURED_TRACKS } from './curatedData';
 
 export type { SearchResponse, YouTubePlaylist };
@@ -38,14 +38,41 @@ export async function fetchPlaylistTracks(playlistId: string): Promise<Track[]> 
   return [];
 }
 
-export async function searchYouTube(query: string, filter: SearchFilter = 'TODOS'): Promise<SearchResponse> {
+export async function resolveStreamUrl(sourceUrl: string): Promise<string | null> {
+  if (!sourceUrl) return null;
+  try {
+    const res = await fetch(`/api/music/resolve?url=${encodeURIComponent(sourceUrl)}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.streamUrl || null;
+    }
+  } catch (e) {
+    console.warn('Failed to resolve stream URL', e);
+  }
+  return null;
+}
+
+export async function searchMusic(
+  query: string,
+  filter: SearchFilter = 'TODOS',
+  source: MusicSource = 'all'
+): Promise<SearchResponse> {
   const cleanQ = query.trim();
   if (!cleanQ) {
-    return { results: [], playlists: [], suggestions: [], query: '', total: 0 };
+    return {
+      results: [],
+      playlists: [],
+      suggestions: [],
+      query: '',
+      total: 0,
+      countsBySource: { all: 0, youtube: 0, jamendo: 0, soundcloud: 0 },
+    };
   }
 
   try {
-    const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(cleanQ)}&filter=${encodeURIComponent(filter)}`);
+    const res = await fetch(
+      `/api/music/search?q=${encodeURIComponent(cleanQ)}&filter=${encodeURIComponent(filter)}&source=${encodeURIComponent(source)}`
+    );
     if (res.ok) {
       const data = await res.json();
       if (data && (Array.isArray(data.results) || Array.isArray(data.playlists))) {
@@ -57,11 +84,17 @@ export async function searchYouTube(query: string, filter: SearchFilter = 'TODOS
           query: cleanQ,
           total: (data.results?.length || 0) + (data.playlists?.length || 0),
           source: data.source,
+          countsBySource: data.countsBySource || {
+            all: data.results?.length || 0,
+            youtube: (data.results || []).filter((r: Track) => r.source === 'youtube').length,
+            jamendo: (data.results || []).filter((r: Track) => r.source === 'jamendo').length,
+            soundcloud: (data.results || []).filter((r: Track) => r.source === 'soundcloud').length,
+          },
         };
       }
     }
   } catch (err) {
-    console.warn('Network request to /api/youtube/search failed, using client catalog', err);
+    console.warn('Network request to /api/music/search failed, using client fallback', err);
   }
 
   // Client-side fallback matching
@@ -88,5 +121,8 @@ export async function searchYouTube(query: string, filter: SearchFilter = 'TODOS
     query: cleanQ,
     total: matched.length,
     source: 'client_curated_fallback',
+    countsBySource: { all: matched.length, youtube: matched.length, jamendo: 0, soundcloud: 0 },
   };
 }
+
+export const searchYouTube = searchMusic;

@@ -1,10 +1,13 @@
 export type ContentType = 'music' | 'video' | 'channel';
 
+export type MusicSource = 'all' | 'youtube' | 'jamendo' | 'soundcloud';
+
 export interface Track {
   id: string;
   youtubeId: string;
   audioUrl?: string; // Direct audio stream (100% permission / no restriction)
-  source?: 'youtube' | 'audius';
+  sourceUrl?: string; // Source resolution URL (e.g. progressive stream endpoint)
+  source?: 'youtube' | 'jamendo' | 'soundcloud' | 'audius';
   isUnrestricted?: boolean; // Verified embeddable or free open playback
   title: string;
   artist: string;
@@ -82,6 +85,12 @@ export interface SearchResponse {
   query: string;
   total: number;
   source?: string;
+  countsBySource?: {
+    all: number;
+    youtube: number;
+    jamendo: number;
+    soundcloud: number;
+  };
 }
 
 export interface AppSettings {
