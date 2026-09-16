@@ -26,6 +26,7 @@ import { Track, AppSettings } from '../types';
 import { VUMeter } from './VUMeter';
 import { VinylPlayer } from './VinylPlayer';
 import { storage } from '../lib/storage';
+import { AudioWaveform, getVolumeColor } from './AudioWaveform';
 
 interface PlayerProps {
   currentTrack: Track | null;
@@ -357,22 +358,26 @@ export const Player: React.FC<PlayerProps> = ({
       </div>
 
       {/* 2. EXPANDED FULL-SCREEN PLAYER MODAL */}
-      {isExpanded && (
-        <div
-          id="expanded-player-modal"
-          className="fixed inset-0 z-50 bg-[#050706] flex flex-col justify-between overflow-y-auto animate-in fade-in zoom-in-95 duration-200 select-none pb-safe"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 md:px-8 border-b border-emerald-950/60 shrink-0">
-            <button
-              type="button"
-              onClick={onToggleExpand}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
-              title="Minimizar player"
-            >
-              <ChevronDown className="w-5 h-5" />
-            </button>
+      <div
+        id="expanded-player-modal"
+        className={`fixed inset-0 z-50 bg-[#050706] flex flex-col justify-between overflow-y-auto pb-safe transition-all duration-200 select-none ${
+          isExpanded
+            ? 'opacity-100 pointer-events-auto visible'
+            : 'opacity-0 pointer-events-none -top-[99999px] -left-[99999px] invisible'
+        }`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 md:px-8 border-b border-emerald-950/60 shrink-0">
+          <button
+            type="button"
+            onClick={onToggleExpand}
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            title="Minimizar player"
+          >
+            <ChevronDown className="w-5 h-5" />
+          </button>
 
+          <div className="flex flex-col items-center">
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-sm md:text-base tracking-tight text-white font-display">
                 MiGa<span className="text-[#00ff88]">TUBE</span>
@@ -382,36 +387,47 @@ export const Player: React.FC<PlayerProps> = ({
                 {mode === 'vinyl' ? 'Deck de Vinil Digital' : 'Player de Vídeo'}
               </span>
             </div>
-
-            {/* Mode Switch Pills */}
-            <div className="flex items-center gap-1 bg-black/60 p-1 rounded-xl border border-emerald-950">
-              <button
-                type="button"
-                onClick={() => onSetMode('vinyl')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  mode === 'vinyl'
-                    ? 'bg-emerald-500 text-black shadow-xs shadow-emerald-500/40'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Disc3 className="w-3.5 h-3.5" />
-                <span>Vinil</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onSetMode('video')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                  mode === 'video'
-                    ? 'bg-emerald-500 text-black shadow-xs shadow-emerald-500/40'
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Video className="w-3.5 h-3.5" />
-                <span>Vídeo</span>
-              </button>
+            {/* Waveform under the name MiGaTUBE with volume gradient */}
+            <div className="mt-1">
+              <AudioWaveform
+                volume={isMuted ? 0 : volume}
+                isPlaying={isPlaying}
+                barCount={20}
+                height={14}
+                showLabel={true}
+              />
             </div>
           </div>
+
+          {/* Mode Switch Pills */}
+          <div className="flex items-center gap-1 bg-black/60 p-1 rounded-xl border border-emerald-950">
+            <button
+              type="button"
+              onClick={() => onSetMode('vinyl')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                mode === 'vinyl'
+                  ? 'bg-emerald-500 text-black shadow-xs shadow-emerald-500/40'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Disc3 className="w-3.5 h-3.5" />
+              <span>Vinil</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onSetMode('video')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                mode === 'video'
+                  ? 'bg-emerald-500 text-black shadow-xs shadow-emerald-500/40'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span>Vídeo</span>
+            </button>
+          </div>
+        </div>
 
           {/* Playback Error Warning Banner */}
           {playbackError && (
@@ -444,41 +460,61 @@ export const Player: React.FC<PlayerProps> = ({
           {/* Main Visual Arena */}
           <div className="flex-1 flex flex-col lg:flex-row items-center justify-center p-4 md:p-8 gap-6 max-w-6xl mx-auto w-full">
             {/* Visualizer Area (Vinyl Deck OR Video Player) */}
-            <div className="w-full flex-1 max-w-xl flex flex-col items-center justify-center relative">
-              {mode === 'vinyl' ? (
-                <div className="w-full flex flex-col items-center">
-                  <VinylPlayer
-                    track={currentTrack}
-                    isPlaying={isPlaying}
-                    animateVinyl={settings.vinylAnimation}
-                  />
+            <div className="w-full flex-1 max-w-xl flex flex-col items-center justify-center relative min-h-[320px] md:min-h-[400px]">
+              {/* 1. Vinyl Deck Option */}
+              <div className={`w-full flex flex-col items-center transition-all duration-300 ${mode === 'vinyl' ? 'block' : 'hidden'}`}>
+                <VinylPlayer
+                  track={currentTrack}
+                  isPlaying={isPlaying}
+                  animateVinyl={settings.vinylAnimation}
+                />
 
-                  {/* Corner VU Meter under vinyl */}
-                  {settings.vuMeterEnabled && (
-                    <div className="mt-2 flex items-center justify-center">
-                      <VUMeter isPlaying={isPlaying} />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="w-full aspect-video rounded-3xl overflow-hidden bg-black/90 border border-emerald-500/30 shadow-2xl relative flex flex-col items-center justify-center">
-                  {/* Backdrop with Video Title */}
-                  <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 pointer-events-none">
-                    <span className="text-xs text-emerald-400 mb-1 font-mono flex items-center gap-1.5 font-semibold">
-                      <Tv className="w-4 h-4" /> REPRODUÇÃO DE VÍDEO OFICIAL
-                    </span>
-                    <p className="text-zinc-400 text-xs max-w-xs">
-                      Exibição sincronizada em alta definição via YouTube
-                    </p>
+                {/* Corner VU Meter under vinyl */}
+                {settings.vuMeterEnabled && (
+                  <div className="mt-2 flex items-center justify-center">
+                    <VUMeter isPlaying={isPlaying} />
                   </div>
+                )}
+              </div>
 
-                  {settings.vuMeterEnabled && (
-                    <div className="absolute bottom-3 right-3 pointer-events-none">
-                      <VUMeter isPlaying={isPlaying} compact />
+              {/* 2. Video Player Option: Directly replaces vinyl deck in place, no popup */}
+              <div
+                className={`w-full flex flex-col items-center transition-all duration-300 ${
+                  mode === 'video'
+                    ? 'block'
+                    : 'fixed -top-[9999px] -left-[9999px] w-[320px] h-[180px] pointer-events-none opacity-0'
+                }`}
+              >
+                <div className="w-full aspect-video rounded-3xl overflow-hidden bg-black border-2 border-emerald-500/60 shadow-2xl shadow-emerald-950/80 relative flex items-center justify-center">
+                  {currentTrack.audioUrl ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-gradient-to-b from-emerald-950/50 via-black to-black text-center">
+                      <img
+                        src={currentTrack.thumbnail}
+                        alt=""
+                        className="w-24 h-24 md:w-32 md:h-32 rounded-2xl object-cover mb-3 shadow-2xl border border-emerald-500/40"
+                      />
+                      <span className="text-xs text-emerald-400 font-mono font-bold uppercase tracking-wider">
+                        Áudio Sem Restrição • {currentTrack.source === 'audius' ? 'Audius Open Source' : 'Streaming Hi-Fi'}
+                      </span>
+                      <p className="text-base font-bold text-white mt-1 max-w-sm truncate">{currentTrack.title}</p>
+                      <p className="text-xs text-zinc-400 truncate mt-0.5">{currentTrack.artist}</p>
+                      <div className="mt-4">
+                        <AudioWaveform volume={isMuted ? 0 : volume} isPlaying={isPlaying} barCount={26} height={16} showLabel={false} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-full">
+                      <div id="migatube-yt-iframe" className="w-full h-full" />
                     </div>
                   )}
                 </div>
-              )}
+
+                {settings.vuMeterEnabled && (
+                  <div className="mt-2 flex items-center justify-center">
+                    <VUMeter isPlaying={isPlaying} compact />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Info & Transport Section */}
@@ -620,25 +656,41 @@ export const Player: React.FC<PlayerProps> = ({
                 </button>
               </div>
 
-              {/* Volume Slider in Modal */}
-              <div className="flex items-center gap-3 bg-[#08150f] p-3 rounded-2xl border border-emerald-950">
-                <button
-                  type="button"
-                  onClick={onToggleMute}
-                  className="text-zinc-400 hover:text-white"
-                >
-                  {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 text-zinc-500" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-                </button>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => onSetVolume(parseInt(e.target.value, 10))}
-                  className="w-full h-1.5 bg-emerald-950 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                />
-                <span className="text-xs font-mono text-zinc-400 w-8 text-right">{isMuted ? '0%' : `${volume}%`}</span>
-              </div>
+              {/* Volume Slider in Modal with dynamic gradient color */}
+              {(() => {
+                const volColor = getVolumeColor(isMuted ? 0 : volume);
+                return (
+                  <div className="flex items-center gap-3 bg-[#08150f] p-3 rounded-2xl border border-emerald-950 transition-colors">
+                    <button
+                      type="button"
+                      onClick={onToggleMute}
+                      className="transition-colors cursor-pointer"
+                      style={{ color: volColor.hex }}
+                    >
+                      {isMuted || volume === 0 ? (
+                        <VolumeX className="w-4 h-4 text-zinc-500" />
+                      ) : (
+                        <Volume2 className="w-4 h-4" />
+                      )}
+                    </button>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={isMuted ? 0 : volume}
+                      onChange={(e) => onSetVolume(parseInt(e.target.value, 10))}
+                      style={{ accentColor: volColor.hex }}
+                      className="w-full h-1.5 bg-emerald-950 rounded-lg appearance-none cursor-pointer"
+                    />
+                    <span
+                      className="text-xs font-mono font-bold w-10 text-right transition-colors"
+                      style={{ color: volColor.hex }}
+                    >
+                      {isMuted ? '0%' : `${volume}%`}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
@@ -690,7 +742,6 @@ export const Player: React.FC<PlayerProps> = ({
             </div>
           )}
         </div>
-      )}
     </>
   );
 };

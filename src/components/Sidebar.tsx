@@ -2,12 +2,15 @@ import React from 'react';
 import { Home, Search, Heart, Disc3, Clock, Settings, Radio } from 'lucide-react';
 import { NavigationTab } from '../types';
 import { PWAInstallButton } from './PWAInstallButton';
+import { AudioWaveform } from './AudioWaveform';
 
 interface SidebarProps {
   currentTab: NavigationTab;
   onSelectTab: (tab: NavigationTab) => void;
   favoritesCount?: number;
   playlistsCount?: number;
+  volume?: number;
+  isPlaying?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -15,6 +18,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   favoritesCount = 0,
   playlistsCount = 0,
+  volume = 85,
+  isPlaying = false,
 }) => {
   const menuItems = [
     { id: 'home' as NavigationTab, label: 'Início', icon: Home },
@@ -49,6 +54,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Música & Vídeo Hi-Fi
             </span>
           </div>
+        </div>
+
+        {/* Audio Waveform with dynamic volume gradient under MiGaTUBE */}
+        <div className="px-2 py-1.5 rounded-xl bg-black/40 border border-emerald-950/80">
+          <AudioWaveform
+            volume={volume}
+            isPlaying={isPlaying}
+            barCount={18}
+            height={14}
+            showLabel={true}
+          />
         </div>
 
         {/* Navigation Links */}

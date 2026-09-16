@@ -21,6 +21,7 @@ import { ArtistView } from './components/ArtistView';
 import { PlaylistModal } from './components/PlaylistModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { PWAInstallButton } from './components/PWAInstallButton';
+import { AudioWaveform } from './components/AudioWaveform';
 
 export function App() {
   // Navigation & Screen state
@@ -123,40 +124,6 @@ export function App() {
     <div className="flex h-screen w-full bg-[#050806] text-slate-100 overflow-hidden font-sans">
       <OfflineIndicator />
 
-      {/* Live YouTube Video Viewport */}
-      <div
-        id="migatube-yt-viewport"
-        className={`transition-all duration-300 ${
-          isPlayerExpanded && player.mode === 'video'
-            ? 'fixed z-[60] top-20 md:top-24 left-1/2 -translate-x-1/2 w-[92vw] max-w-2xl aspect-video rounded-3xl overflow-hidden shadow-2xl border-2 border-emerald-500/70 bg-black'
-            : isPlayerExpanded && player.mode === 'vinyl'
-            ? 'fixed z-[60] bottom-6 right-6 w-56 aspect-video rounded-2xl overflow-hidden shadow-2xl border border-emerald-500/40 bg-black hidden sm:block'
-            : showFloatingVideo
-            ? 'fixed z-40 bottom-24 right-4 w-48 md:w-60 aspect-video rounded-2xl overflow-hidden shadow-2xl border-2 border-emerald-500/60 bg-black'
-            : 'fixed -top-[9999px] -left-[9999px] w-[320px] h-[180px]'
-        }`}
-      >
-        {!isPlayerExpanded && showFloatingVideo && (
-          <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1">
-            <button
-              onClick={() => setIsPlayerExpanded(true)}
-              className="p-1 rounded-md bg-black/80 hover:bg-black text-white text-[10px] cursor-pointer"
-              title="Expandir reprodutor"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => setShowFloatingVideo(false)}
-              className="p-1 rounded-md bg-black/80 hover:bg-black text-white text-[10px] cursor-pointer"
-              title="Ocultar tela flutuante"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-        <div id="migatube-yt-iframe" className="w-full h-full" />
-      </div>
-
       {/* Desktop Sidebar */}
       <Sidebar
         currentTab={currentTab}
@@ -166,6 +133,8 @@ export function App() {
         }}
         favoritesCount={favoritesCount}
         playlistsCount={playlistsCount}
+        volume={player.volume}
+        isPlaying={player.isPlaying}
       />
 
       {/* Main Content Area */}
@@ -178,14 +147,23 @@ export function App() {
               setCurrentTab('home');
               setActiveArtistName(null);
             }}
-            className="flex md:hidden items-center gap-2 cursor-pointer"
+            className="flex md:hidden items-center gap-2.5 cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-xl bg-emerald-500 text-black flex items-center justify-center font-black text-sm shadow-md shadow-emerald-500/30">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500 text-black flex items-center justify-center font-black text-sm shadow-md shadow-emerald-500/30 shrink-0">
               M
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-white font-display">
-              MiGa<span className="text-[#00ff88]">TUBE</span>
-            </span>
+            <div>
+              <span className="font-extrabold text-base tracking-tight text-white font-display">
+                MiGa<span className="text-[#00ff88]">TUBE</span>
+              </span>
+              <AudioWaveform
+                volume={player.volume}
+                isPlaying={player.isPlaying}
+                barCount={10}
+                height={8}
+                showLabel={false}
+              />
+            </div>
           </div>
 
           {/* Header Search Field (Visible on Desktop / Compact on Mobile) */}

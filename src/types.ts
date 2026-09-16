@@ -3,6 +3,9 @@ export type ContentType = 'music' | 'video' | 'channel';
 export interface Track {
   id: string;
   youtubeId: string;
+  audioUrl?: string; // Direct audio stream (100% permission / no restriction)
+  source?: 'youtube' | 'audius';
+  isUnrestricted?: boolean; // Verified embeddable or free open playback
   title: string;
   artist: string;
   channelTitle?: string;
@@ -60,7 +63,7 @@ export type NavigationTab =
   | 'album' 
   | 'settings';
 
-export type SearchFilter = 'TODOS' | 'MÚSICAS' | 'VÍDEOS' | 'PLAYLISTS' | 'CANAIS';
+export type SearchFilter = 'TODOS' | 'SEM RESTRIÇÃO' | 'MÚSICAS' | 'VÍDEOS' | 'PLAYLISTS' | 'CANAIS';
 
 export interface YouTubePlaylist {
   id: string;

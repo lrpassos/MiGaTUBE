@@ -1,6 +1,9 @@
 export interface ScrapedTrack {
   id: string;
   youtubeId: string;
+  audioUrl?: string; // Direct audio stream (100% permission / no restriction)
+  source?: 'youtube' | 'audius';
+  isUnrestricted?: boolean;
   title: string;
   artist: string;
   thumbnail: string;
@@ -19,6 +22,71 @@ export interface ScrapedPlaylist {
   thumbnail: string;
   videoCount: string;
   firstVideoId?: string;
+}
+
+/**
+ * Fast oEmbed verification to screen out restricted YouTube videos (error 101/150)
+ * Status 200 = Embed allowed without restriction
+ * Status 401/403/404 = Restricted / blocked embedding
+ */
+export async function isYouTubeEmbeddable(videoId: string): Promise<boolean> {
+  if (!videoId) return false;
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+      { signal: AbortSignal.timeout(1600) }
+    );
+    return res.status === 200;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Alternative open music provider (Audius API)
+ * Fully licensed, decentralized, zero ads, zero embed blocks, 100% playback permission
+ */
+export async function searchAudiusLive(query: string): Promise<ScrapedTrack[]> {
+  const cleanQ = query.trim();
+  if (!cleanQ) return [];
+  try {
+    const url = `https://discoveryprovider.audius.co/v1/tracks/search?query=${encodeURIComponent(cleanQ)}&app_name=MiGaTUBE`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(2800) });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data?.data)) return [];
+
+    return data.data.slice(0, 10).map((item: any) => {
+      const durationSec = typeof item.duration === 'number' ? item.duration : 210;
+      const minutes = Math.floor(durationSec / 60);
+      const seconds = Math.floor(durationSec % 60);
+      const durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      const thumb =
+        item.artwork?.['480x480'] ||
+        item.artwork?.['150x150'] ||
+        'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80';
+
+      return {
+        id: `aud-${item.id}`,
+        youtubeId: '',
+        audioUrl: `https://discoveryprovider.audius.co/v1/tracks/${item.id}/stream?app_name=MiGaTUBE`,
+        source: 'audius' as const,
+        isUnrestricted: true,
+        title: item.title || 'Música Aberta',
+        artist: item.user?.name || 'Artista Audius',
+        channelTitle: 'Audius Hi-Fi Stream',
+        thumbnail: thumb,
+        duration: durationStr,
+        durationSec,
+        type: 'music' as const,
+        viewCount: item.play_count ? `${item.play_count} plays` : 'Hi-Fi Aberto',
+        album: item.genre || 'Música Livre',
+      };
+    });
+  } catch (err) {
+    console.warn('Audius open stream search error:', err);
+    return [];
+  }
 }
 
 export async function fetchYouTubeSuggestions(query: string): Promise<string[]> {
@@ -58,8 +126,9 @@ export async function searchYouTubeLive(
     return { results: [], playlists: [], suggestions: [] };
   }
 
-  // Fetch suggestions in parallel for typo detection
+  // Fetch suggestions and open music sources (Audius) in parallel
   const suggestionsPromise = fetchYouTubeSuggestions(cleanQ);
+  const audiusPromise = searchAudiusLive(cleanQ);
 
   // Determine YouTube search URL and filter
   let searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanQ)}`;
@@ -227,8 +296,54 @@ export async function searchYouTubeLive(
     }
   }
 
+  // 1. Screen YouTube candidates to filter out restricted/blocked embeds (e.g. error 101/150)
+  const embedChecks = await Promise.all(
+    tracks.slice(0, 16).map(async t => {
+      const ok = await isYouTubeEmbeddable(t.youtubeId);
+      return { ...t, isUnrestricted: ok, source: 'youtube' as const };
+    })
+  );
+  // Keep only tracks verified to have embedding allowed (or fallback to original if screening was inconclusive)
+  const verifiedYouTube = embedChecks.filter(t => t.isUnrestricted);
+  const candidateYouTube = verifiedYouTube.length > 0 ? verifiedYouTube : embedChecks;
+
+  // 2. Await Audius open tracks (100% unrestricted and open playback)
+  let audiusTracks: ScrapedTrack[] = [];
+  try {
+    audiusTracks = await audiusPromise;
+  } catch (err) {
+    console.warn('Audius integration warning:', err);
+  }
+
+  // 3. Assemble filtered collection based on user intent
+  let finalResults: ScrapedTrack[] = [];
+
+  if (filter === 'SEM RESTRIÇÃO') {
+    // Both Audius tracks and verified YouTube tracks
+    finalResults = [...audiusTracks, ...candidateYouTube];
+  } else if (filter === 'VÍDEOS') {
+    finalResults = candidateYouTube.filter(t => t.type === 'video');
+  } else if (filter === 'MÚSICAS') {
+    finalResults = [...candidateYouTube.filter(t => t.type === 'music'), ...audiusTracks];
+  } else if (filter === 'CANAIS' || filter === 'PLAYLISTS') {
+    finalResults = candidateYouTube;
+  } else {
+    // 'TODOS': Interleave verified YouTube with high-fidelity Audius tracks
+    if (audiusTracks.length > 0) {
+      // Put top YouTube, then Audius, then remaining YouTube
+      finalResults = [
+        ...candidateYouTube.slice(0, 3),
+        ...audiusTracks.slice(0, 4),
+        ...candidateYouTube.slice(3),
+        ...audiusTracks.slice(4),
+      ];
+    } else {
+      finalResults = candidateYouTube;
+    }
+  }
+
   return {
-    results: tracks,
+    results: finalResults,
     playlists,
     suggestions,
     correctedQuery,

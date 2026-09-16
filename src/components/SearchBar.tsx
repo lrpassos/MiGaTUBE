@@ -10,8 +10,9 @@ interface SearchBarProps {
   autoFocus?: boolean;
 }
 
-const FILTERS: { id: SearchFilter; label: string }[] = [
+const FILTERS: { id: SearchFilter; label: string; icon?: string }[] = [
   { id: 'TODOS', label: 'Todos' },
+  { id: 'SEM RESTRIÇÃO', label: '⚡ Sem Restrição (100% Tocáveis)' },
   { id: 'MÚSICAS', label: 'Músicas' },
   { id: 'PLAYLISTS', label: 'Playlists & Álbuns' },
   { id: 'VÍDEOS', label: 'Vídeos' },

@@ -318,9 +318,21 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
                     >
                       {track.artist}
                     </p>
-                    {track.viewCount && (
-                      <p className="text-[10px] text-zinc-500 truncate mt-0.5">{track.viewCount}</p>
-                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      {track.isUnrestricted && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-emerald-500/15 text-[9px] font-mono text-[#00ff88] border border-emerald-500/30 font-medium">
+                          <Check className="w-2.5 h-2.5" /> Sem Restrição
+                        </span>
+                      )}
+                      {track.source === 'audius' && (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-md bg-purple-500/15 text-[9px] font-mono text-purple-300 border border-purple-500/30 font-medium">
+                          Audius Hi-Fi
+                        </span>
+                      )}
+                      {track.viewCount && (
+                        <span className="text-[10px] text-zinc-500 truncate">{track.viewCount}</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Actions */}
