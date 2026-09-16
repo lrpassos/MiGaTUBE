@@ -3,6 +3,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
+import {
+  searchYouTubeLive,
+  fetchPlaylistTracksLive,
+  fetchYouTubeSuggestions,
+} from './server/youtubeScraper';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
@@ -244,21 +249,37 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// YouTube Official Search API endpoint with fallback proxy
+// Live YouTube Suggestions endpoint
+app.get('/api/youtube/suggestions', async (req: Request, res: Response) => {
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (!query) return res.json({ suggestions: [] });
+  const suggestions = await fetchYouTubeSuggestions(query);
+  return res.json({ suggestions });
+});
+
+// Live YouTube Playlist tracks endpoint
+app.get('/api/youtube/playlist', async (req: Request, res: Response) => {
+  const playlistId = typeof req.query.id === 'string' ? req.query.id.trim() : '';
+  if (!playlistId) return res.json({ tracks: [] });
+  const tracks = await fetchPlaylistTracksLive(playlistId);
+  return res.json({ tracks, playlistId, total: tracks.length });
+});
+
+// YouTube Official & Live Search API endpoint
 app.get('/api/youtube/search', async (req: Request, res: Response) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const filter = (typeof req.query.filter === 'string' ? req.query.filter.toUpperCase() : 'TODOS');
   const apiKey = process.env.YOUTUBE_API_KEY;
 
   if (!query) {
-    return res.json({ results: [], query: '', total: 0 });
+    return res.json({ results: [], playlists: [], suggestions: [], query: '', total: 0 });
   }
 
-  // If official API Key is configured in environment
+  // 1. If official API Key is configured in environment, try official Google API first
   if (apiKey) {
     try {
-      const typeParam = filter === 'CANAIS' ? 'channel' : 'video';
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=${encodeURIComponent(query)}&type=${typeParam}&key=${apiKey}`;
+      const typeParam = filter === 'CANAIS' ? 'channel' : filter === 'PLAYLISTS' ? 'playlist' : 'video';
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=${encodeURIComponent(query)}&type=${typeParam}&key=${apiKey}`;
       const searchRes = await fetch(searchUrl);
       const searchData = await searchRes.json();
 
@@ -282,14 +303,14 @@ app.get('/api/youtube/search', async (req: Request, res: Response) => {
 
         const formatted = searchData.items.map((item: any) => {
           const isChannel = item.id.kind === 'youtube#channel';
-          const videoId = isChannel ? item.id.channelId : item.id.videoId;
+          const isPlaylist = item.id.kind === 'youtube#playlist';
+          const videoId = isChannel ? item.id.channelId : isPlaylist ? item.id.playlistId : item.id.videoId;
           const detail = videoDetailsMap[videoId];
           const durationStr = detail ? formatDuration(detail.contentDetails?.duration) : '3:30';
 
           const title = item.snippet.title.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
           const channelTitle = item.snippet.channelTitle;
 
-          // Determine if content is audio/track oriented or official clip
           const lowerTitle = title.toLowerCase();
           const isAudioVisual = lowerTitle.includes('audio') || lowerTitle.includes('lyric') || lowerTitle.includes('track') || lowerTitle.includes('album') || !lowerTitle.includes('clip');
 
@@ -316,11 +337,29 @@ app.get('/api/youtube/search', async (req: Request, res: Response) => {
         });
       }
     } catch (err) {
-      console.warn('YouTube API call failed or quota reached, engaging intelligent fallback', err);
+      console.warn('Official YouTube API failed, engaging live web scraper', err);
     }
   }
 
-  // Fallback engine: Searches curated database or returns contextual matching tracks
+  // 2. High-performance live YouTube search engine (no API key required)
+  try {
+    const liveData = await searchYouTubeLive(query, filter);
+    if (liveData.results.length > 0 || liveData.playlists.length > 0) {
+      return res.json({
+        source: 'youtube_live_engine',
+        results: liveData.results,
+        playlists: liveData.playlists,
+        suggestions: liveData.suggestions,
+        correctedQuery: liveData.correctedQuery,
+        query,
+        total: liveData.results.length,
+      });
+    }
+  } catch (liveErr) {
+    console.warn('Live search parser error, trying curated catalog fallback', liveErr);
+  }
+
+  // 3. Fallback engine: Searches curated database or returns contextual matching tracks
   const cleanQ = query.toLowerCase();
   let matched = MOCK_SEARCH_DATABASE.filter(item => {
     return (
@@ -331,7 +370,6 @@ app.get('/api/youtube/search', async (req: Request, res: Response) => {
     );
   });
 
-  // If query is generic or novel, provide smart contextual results
   if (matched.length === 0) {
     matched = MOCK_SEARCH_DATABASE.slice(0, 8).map((base, idx) => ({
       ...base,
@@ -341,7 +379,6 @@ app.get('/api/youtube/search', async (req: Request, res: Response) => {
     }));
   }
 
-  // Apply filters
   let filtered = matched;
   if (filter === 'MÚSICAS') {
     filtered = matched.filter(t => t.type === 'music');
@@ -352,6 +389,8 @@ app.get('/api/youtube/search', async (req: Request, res: Response) => {
   return res.json({
     source: 'migatube_curated_engine',
     results: filtered,
+    playlists: [],
+    suggestions: [query, `${query} greatest hits`, `${query} playlist`],
     query,
     total: filtered.length,
   });

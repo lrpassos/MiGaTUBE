@@ -9,11 +9,27 @@ declare global {
   }
 }
 
+const DEFAULT_STARTER_TRACK: Track = {
+  id: 'yt-69RdQFDuYPI',
+  youtubeId: '69RdQFDuYPI',
+  title: 'Is This Love (Official Music Video)',
+  artist: 'Bob Marley & The Wailers',
+  thumbnail: 'https://i.ytimg.com/vi/69RdQFDuYPI/hq720.jpg',
+  duration: '3:54',
+  durationSec: 234,
+  type: 'music',
+  album: 'Kaya (1978)',
+  genre: 'Reggae',
+  viewCount: '245M visualizações',
+};
+
 export function useYouTubePlayer() {
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(() => storage.getLastPlayed());
+  const [currentTrack, setCurrentTrack] = useState<Track>(() => {
+    return storage.getLastPlayed() || DEFAULT_STARTER_TRACK;
+  });
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(180);
+  const [duration, setDuration] = useState<number>(234);
   const [volume, setVolumeState] = useState<number>(85);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [mode, setMode] = useState<'vinyl' | 'video'>('vinyl');
@@ -22,10 +38,12 @@ export function useYouTubePlayer() {
   const [repeatMode, setRepeatMode] = useState<'off' | 'all' | 'one'>('off');
   const [shuffle, setShuffle] = useState<boolean>(false);
   const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
+  const [playbackError, setPlaybackError] = useState<string | null>(null);
 
   const playerRef = useRef<any>(null);
   const progressTimerRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const pendingTrackRef = useRef<Track | null>(null);
+  const shouldPlayImmediatelyRef = useRef<boolean>(false);
 
   // Initialize Media Session API
   const updateMediaSession = useCallback((track: Track) => {
@@ -49,10 +67,13 @@ export function useYouTubePlayer() {
   // Sync YouTube API script
   useEffect(() => {
     if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      tag.async = true;
-      document.body.appendChild(tag);
+      const existingScript = document.querySelector('script[src*="youtube.com/iframe_api"]');
+      if (!existingScript) {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        tag.async = true;
+        document.body.appendChild(tag);
+      }
     }
 
     const checkReady = () => {
@@ -67,44 +88,71 @@ export function useYouTubePlayer() {
       const targetEl = document.getElementById('migatube-yt-iframe');
       if (!targetEl || playerRef.current) return;
 
-      playerRef.current = new window.YT.Player('migatube-yt-iframe', {
-        height: '100%',
-        width: '100%',
-        videoId: currentTrack ? currentTrack.youtubeId : 'mGVGIbflG_M',
-        playerVars: {
-          autoplay: 0,
-          controls: 1,
-          rel: 0,
-          modestbranding: 1,
-          playsinline: 1,
-          origin: window.location.origin,
-          fs: 1,
-        },
-        events: {
-          onReady: () => {
-            setIsPlayerReady(true);
-            try {
-              playerRef.current.setVolume(85);
-            } catch {}
+      try {
+        playerRef.current = new window.YT.Player('migatube-yt-iframe', {
+          height: '100%',
+          width: '100%',
+          videoId: currentTrack ? currentTrack.youtubeId : DEFAULT_STARTER_TRACK.youtubeId,
+          playerVars: {
+            enablejsapi: 1,
+            autoplay: 0,
+            controls: 1,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            fs: 1,
+            iv_load_policy: 3,
           },
-          onStateChange: (event: any) => {
-            // YT.PlayerState: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued
-            if (event.data === 1) {
-              setIsPlaying(true);
-              const dur = playerRef.current?.getDuration?.();
-              if (dur && dur > 0) setDuration(dur);
-            } else if (event.data === 2) {
-              setIsPlaying(false);
-            } else if (event.data === 0) {
-              // Track finished
-              handleTrackEnded();
-            }
+          events: {
+            onReady: (e: any) => {
+              setIsPlayerReady(true);
+              try {
+                e.target.unMute();
+                e.target.setVolume(85);
+              } catch {}
+
+              if (shouldPlayImmediatelyRef.current && pendingTrackRef.current) {
+                const trk = pendingTrackRef.current;
+                pendingTrackRef.current = null;
+                shouldPlayImmediatelyRef.current = false;
+                try {
+                  e.target.loadVideoById(trk.youtubeId);
+                  e.target.playVideo();
+                  setIsPlaying(true);
+                } catch (playErr) {
+                  console.warn('Playback error on initial ready', playErr);
+                }
+              }
+            },
+            onStateChange: (event: any) => {
+              // YT.PlayerState: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering, 5 cued
+              if (event.data === 1) {
+                setIsPlaying(true);
+                setPlaybackError(null);
+                const dur = playerRef.current?.getDuration?.();
+                if (dur && dur > 0) setDuration(dur);
+              } else if (event.data === 2) {
+                setIsPlaying(false);
+              } else if (event.data === 0) {
+                handleTrackEnded();
+              }
+            },
+            onError: (err: any) => {
+              console.warn('YouTube Player error code:', err?.data);
+              const code = err?.data;
+              if (code === 101 || code === 150) {
+                setPlaybackError(
+                  'Este vídeo possui restrições do YouTube para reprodução externa. Pule para a próxima faixa ou tente a versão de áudio/lyric.'
+                );
+              } else if (code === 100) {
+                setPlaybackError('Vídeo não encontrado ou removido do YouTube.');
+              }
+            },
           },
-          onError: (err: any) => {
-            console.warn('YouTube Player error code:', err?.data);
-          }
-        },
-      });
+        });
+      } catch (err) {
+        console.warn('Error creating YT.Player:', err);
+      }
     };
 
     checkReady();
@@ -119,13 +167,16 @@ export function useYouTubePlayer() {
     if (isPlaying) {
       progressTimerRef.current = setInterval(() => {
         if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
-          const time = playerRef.current.getCurrentTime();
-          setCurrentTime(time || 0);
-
-          const totalDur = playerRef.current.getDuration?.();
-          if (totalDur && totalDur > 0) {
-            setDuration(totalDur);
-          }
+          try {
+            const time = playerRef.current.getCurrentTime();
+            if (typeof time === 'number') {
+              setCurrentTime(time);
+            }
+            const totalDur = playerRef.current.getDuration?.();
+            if (totalDur && totalDur > 0) {
+              setDuration(totalDur);
+            }
+          } catch {}
         }
       }, 500);
     } else {
@@ -161,54 +212,86 @@ export function useYouTubePlayer() {
   };
 
   // Play a specific track
-  const playTrack = useCallback((track: Track, newQueue?: Track[], index?: number) => {
-    setCurrentTrack(track);
-    storage.setLastPlayed(track);
-    storage.addToHistory(track);
-    updateMediaSession(track);
+  const playTrack = useCallback(
+    (track: Track, newQueue?: Track[], index?: number) => {
+      setCurrentTrack(track);
+      setPlaybackError(null);
+      storage.setLastPlayed(track);
+      storage.addToHistory(track);
+      updateMediaSession(track);
 
-    // Auto set vinyl mode if it's marked as music, video mode if type === 'video'
-    if (track.type === 'video') {
-      setMode('video');
-    } else {
-      setMode('vinyl');
-    }
-
-    if (newQueue) {
-      setQueue(newQueue);
-      setQueueIndex(index ?? newQueue.findIndex(t => t.id === track.id || t.youtubeId === track.youtubeId));
-    }
-
-    if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
-      try {
-        playerRef.current.loadVideoById(track.youtubeId);
-        playerRef.current.playVideo();
-        setIsPlaying(true);
-      } catch (e) {
-        console.warn('Error loading video in YT Player', e);
+      if (track.type === 'video') {
+        setMode('video');
       }
-    }
-  }, [updateMediaSession]);
+
+      if (newQueue) {
+        setQueue(newQueue);
+        const calculatedIndex =
+          index ??
+          newQueue.findIndex((t) => t.id === track.id || t.youtubeId === track.youtubeId);
+        setQueueIndex(calculatedIndex);
+      }
+
+      if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+        try {
+          playerRef.current.unMute();
+          playerRef.current.setVolume(volume || 85);
+          playerRef.current.loadVideoById(track.youtubeId);
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+        } catch (e) {
+          console.warn('Error loading video in YT Player', e);
+        }
+      } else {
+        // Queue until onReady fires
+        pendingTrackRef.current = track;
+        shouldPlayImmediatelyRef.current = true;
+        setIsPlaying(true);
+      }
+    },
+    [updateMediaSession, volume]
+  );
 
   const togglePlay = useCallback(() => {
-    if (!playerRef.current) return;
+    if (!currentTrack) return;
+    setPlaybackError(null);
+
+    if (!playerRef.current || typeof playerRef.current.playVideo !== 'function') {
+      pendingTrackRef.current = currentTrack;
+      shouldPlayImmediatelyRef.current = true;
+      setIsPlaying(true);
+      return;
+    }
+
     try {
       if (isPlaying) {
         playerRef.current.pauseVideo();
         setIsPlaying(false);
       } else {
+        try {
+          playerRef.current.unMute();
+          playerRef.current.setVolume(volume || 85);
+        } catch {}
+
+        // Check if video is loaded
+        const currentUrl = playerRef.current.getVideoUrl?.() || '';
+        if (!currentUrl.includes(currentTrack.youtubeId)) {
+          playerRef.current.loadVideoById(currentTrack.youtubeId);
+        }
         playerRef.current.playVideo();
         setIsPlaying(true);
       }
     } catch (e) {
       console.warn('togglePlay error', e);
     }
-  }, [isPlaying]);
+  }, [currentTrack, isPlaying, volume]);
 
   const seekTo = useCallback((seconds: number) => {
     setCurrentTime(seconds);
     if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
-      playerRef.current.seekTo(seconds, true);
+      try {
+        playerRef.current.seekTo(seconds, true);
+      } catch {}
     }
   }, []);
 
@@ -218,23 +301,27 @@ export function useYouTubePlayer() {
     else setIsMuted(false);
 
     if (playerRef.current && typeof playerRef.current.setVolume === 'function') {
-      playerRef.current.setVolume(val);
-      if (val > 0 && playerRef.current.isMuted?.()) {
-        playerRef.current.unMute?.();
-      }
+      try {
+        playerRef.current.setVolume(val);
+        if (val > 0 && playerRef.current.isMuted?.()) {
+          playerRef.current.unMute?.();
+        }
+      } catch {}
     }
   }, []);
 
   const toggleMute = useCallback(() => {
     if (!playerRef.current) return;
-    if (isMuted) {
-      setIsMuted(false);
-      playerRef.current.unMute?.();
-      playerRef.current.setVolume?.(volume || 80);
-    } else {
-      setIsMuted(true);
-      playerRef.current.mute?.();
-    }
+    try {
+      if (isMuted) {
+        setIsMuted(false);
+        playerRef.current.unMute?.();
+        playerRef.current.setVolume?.(volume || 80);
+      } else {
+        setIsMuted(true);
+        playerRef.current.mute?.();
+      }
+    } catch {}
   }, [isMuted, volume]);
 
   const nextTrack = useCallback(() => {
@@ -248,7 +335,6 @@ export function useYouTubePlayer() {
   }, [queue, queueIndex, repeatMode, playTrack]);
 
   const prevTrack = useCallback(() => {
-    // If more than 3 seconds in, restart track
     if (currentTime > 3) {
       seekTo(0);
       return;
@@ -261,7 +347,7 @@ export function useYouTubePlayer() {
   }, [currentTime, queue, queueIndex, playTrack, seekTo]);
 
   const toggleRepeat = useCallback(() => {
-    setRepeatMode(prev => {
+    setRepeatMode((prev) => {
       if (prev === 'off') return 'all';
       if (prev === 'all') return 'one';
       return 'off';
@@ -269,7 +355,7 @@ export function useYouTubePlayer() {
   }, []);
 
   const toggleShuffle = useCallback(() => {
-    setShuffle(prev => !prev);
+    setShuffle((prev) => !prev);
   }, []);
 
   // Setup MediaSession handlers
@@ -304,7 +390,8 @@ export function useYouTubePlayer() {
     repeatMode,
     shuffle,
     isPlayerReady,
-    containerRef,
+    playbackError,
+    setPlaybackError,
     setMode,
     playTrack,
     togglePlay,

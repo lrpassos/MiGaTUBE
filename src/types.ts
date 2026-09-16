@@ -60,7 +60,26 @@ export type NavigationTab =
   | 'album' 
   | 'settings';
 
-export type SearchFilter = 'TODOS' | 'MÚSICAS' | 'VÍDEOS' | 'CANAIS';
+export type SearchFilter = 'TODOS' | 'MÚSICAS' | 'VÍDEOS' | 'PLAYLISTS' | 'CANAIS';
+
+export interface YouTubePlaylist {
+  id: string;
+  title: string;
+  videoCount?: string;
+  author?: string;
+  thumbnail?: string;
+  firstVideoId?: string;
+}
+
+export interface SearchResponse {
+  results: Track[];
+  playlists?: YouTubePlaylist[];
+  suggestions?: string[];
+  correctedQuery?: string;
+  query: string;
+  total: number;
+  source?: string;
+}
 
 export interface AppSettings {
   vinylAnimation: boolean;

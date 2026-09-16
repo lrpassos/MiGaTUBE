@@ -18,7 +18,9 @@ import {
   Video,
   Radio,
   Tv,
-  ExternalLink
+  ExternalLink,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { Track, AppSettings } from '../types';
 import { VUMeter } from './VUMeter';
@@ -39,6 +41,10 @@ interface PlayerProps {
   shuffle: boolean;
   isExpanded: boolean;
   settings: AppSettings;
+  showFloatingVideo?: boolean;
+  onToggleFloatingVideo?: () => void;
+  playbackError?: string | null;
+  onClearPlaybackError?: () => void;
   onTogglePlay: () => void;
   onSeek: (seconds: number) => void;
   onSetVolume: (vol: number) => void;
@@ -74,6 +80,10 @@ export const Player: React.FC<PlayerProps> = ({
   shuffle,
   isExpanded,
   settings,
+  showFloatingVideo,
+  onToggleFloatingVideo,
+  playbackError,
+  onClearPlaybackError,
   onTogglePlay,
   onSeek,
   onSetVolume,
@@ -315,6 +325,23 @@ export const Player: React.FC<PlayerProps> = ({
               <ListMusic className="w-4 h-4" />
             </button>
 
+            {/* PiP Floating Screen Toggle */}
+            {onToggleFloatingVideo && (
+              <button
+                type="button"
+                id="btn-pip-toggle"
+                onClick={onToggleFloatingVideo}
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                  showFloatingVideo
+                    ? 'bg-emerald-500/20 text-[#00ff88] border border-emerald-500/40'
+                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                }`}
+                title={showFloatingVideo ? 'Ocultar tela flutuante' : 'Ver vídeo flutuante (PiP)'}
+              >
+                <Tv className="w-4 h-4" />
+              </button>
+            )}
+
             {/* Expand / Maximize button */}
             <button
               type="button"
@@ -386,6 +413,34 @@ export const Player: React.FC<PlayerProps> = ({
             </div>
           </div>
 
+          {/* Playback Error Warning Banner */}
+          {playbackError && (
+            <div className="mx-4 md:mx-8 mt-3 p-3 rounded-2xl bg-amber-950/70 border border-amber-500/40 text-amber-200 text-xs flex items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>{playbackError}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={onNext}
+                  className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold text-[11px] transition-colors"
+                >
+                  Próxima Faixa
+                </button>
+                {onClearPlaybackError && (
+                  <button
+                    type="button"
+                    onClick={onClearPlaybackError}
+                    className="p-1 rounded-md text-amber-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Main Visual Arena */}
           <div className="flex-1 flex flex-col lg:flex-row items-center justify-center p-4 md:p-8 gap-6 max-w-6xl mx-auto w-full">
             {/* Visualizer Area (Vinyl Deck OR Video Player) */}
@@ -406,28 +461,19 @@ export const Player: React.FC<PlayerProps> = ({
                   )}
                 </div>
               ) : (
-                <div className="w-full aspect-video rounded-3xl overflow-hidden bg-black border border-emerald-950 shadow-2xl relative">
-                  {/* Visual container indicator */}
-                  <div className="w-full h-full flex flex-col items-center justify-center text-center p-4">
-                    <p className="text-xs text-emerald-400 mb-2 font-mono flex items-center gap-1">
-                      <Tv className="w-4 h-4" /> REPRODUÇÃO OFICIAL DO YOUTUBE
+                <div className="w-full aspect-video rounded-3xl overflow-hidden bg-black/90 border border-emerald-500/30 shadow-2xl relative flex flex-col items-center justify-center">
+                  {/* Backdrop with Video Title */}
+                  <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 pointer-events-none">
+                    <span className="text-xs text-emerald-400 mb-1 font-mono flex items-center gap-1.5 font-semibold">
+                      <Tv className="w-4 h-4" /> REPRODUÇÃO DE VÍDEO OFICIAL
+                    </span>
+                    <p className="text-zinc-400 text-xs max-w-xs">
+                      Exibição sincronizada em alta definição via YouTube
                     </p>
-                    <p className="text-zinc-400 text-xs max-w-sm mb-4">
-                      O vídeo está sendo processado através do motor oficial do YouTube IFrame.
-                    </p>
-                    <a
-                      href={`https://www.youtube.com/watch?v=${currentTrack.youtubeId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-4 py-2 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs font-medium flex items-center gap-2 hover:bg-emerald-900/50"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Assistir em Alta Resolução
-                    </a>
                   </div>
 
                   {settings.vuMeterEnabled && (
-                    <div className="absolute bottom-3 right-3">
+                    <div className="absolute bottom-3 right-3 pointer-events-none">
                       <VUMeter isPlaying={isPlaying} compact />
                     </div>
                   )}

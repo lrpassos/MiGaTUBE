@@ -1,39 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Radio, Search, SlidersHorizontal, Sparkles } from 'lucide-react';
-import { NavigationTab, SearchFilter, Track, AppSettings, Playlist } from './types';
-import { useYouTubePlayer } from './hooks/useYouTubePlayer';
-import { searchYouTube } from './lib/youtube';
+import React, { useState } from 'react';
+import { Maximize2, X } from 'lucide-react';
+import { Track, Playlist, AppSettings, SearchFilter, YouTubePlaylist } from './types';
 import { storage } from './lib/storage';
 import { FEATURED_TRACKS } from './lib/curatedData';
+import { searchYouTube, fetchPlaylistTracks } from './lib/youtube';
+import { useYouTubePlayer } from './hooks/useYouTubePlayer';
 
+// Modular Components
 import { Sidebar } from './components/Sidebar';
 import { BottomNavigation } from './components/BottomNavigation';
 import { SearchBar } from './components/SearchBar';
 import { SearchResults } from './components/SearchResults';
-import { HomeView } from './components/HomeView';
-import { PlaylistsView } from './components/PlaylistsView';
-import { FavoritesView } from './components/FavoritesView';
-import { HistoryView } from './components/HistoryView';
-import { ArtistView } from './components/ArtistView';
-import { SettingsView } from './components/SettingsView';
 import { Player } from './components/Player';
+import { HomeView } from './components/HomeView';
+import { FavoritesView } from './components/FavoritesView';
+import { PlaylistsView } from './components/PlaylistsView';
+import { HistoryView } from './components/HistoryView';
+import { SettingsView } from './components/SettingsView';
+import { ArtistView } from './components/ArtistView';
 import { PlaylistModal } from './components/PlaylistModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { PWAInstallButton } from './components/PWAInstallButton';
 
 export function App() {
-  const [currentTab, setCurrentTab] = useState<NavigationTab>('home');
+  // Navigation & Screen state
+  const [currentTab, setCurrentTab] = useState<'home' | 'search' | 'favorites' | 'playlists' | 'history' | 'settings'>('home');
   const [activeArtistName, setActiveArtistName] = useState<string | null>(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFilter, setSearchFilter] = useState<SearchFilter>('TODOS');
   const [searchResults, setSearchResults] = useState<Track[]>([]);
+  const [searchPlaylists, setSearchPlaylists] = useState<YouTubePlaylist[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
+  const [correctedQuery, setCorrectedQuery] = useState<string | undefined>();
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
   // Player state
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
+  const [showFloatingVideo, setShowFloatingVideo] = useState(false);
   const [selectedTrackForPlaylist, setSelectedTrackForPlaylist] = useState<Track | null>(null);
 
   // Settings state
@@ -60,9 +66,39 @@ export function App() {
 
     try {
       const response = await searchYouTube(query, filter);
-      setSearchResults(response.results);
+      setSearchResults(response.results || []);
+      setSearchPlaylists(response.playlists || []);
+      setSearchSuggestions(response.suggestions || []);
+      setCorrectedQuery(response.correctedQuery);
     } catch (err: any) {
       setSearchError('Ocorreu um erro ao pesquisar. Tente novamente.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handlePlayYouTubePlaylist = async (pl: YouTubePlaylist) => {
+    setIsSearching(true);
+    try {
+      const tracks = await fetchPlaylistTracks(pl.id);
+      if (tracks.length > 0) {
+        player.playTrack(tracks[0], tracks, 0);
+        setIsPlayerExpanded(true);
+      } else if (pl.firstVideoId) {
+        const fallbackTrack: Track = {
+          id: `yt-${pl.firstVideoId}`,
+          youtubeId: pl.firstVideoId,
+          title: pl.title,
+          artist: pl.author || 'YouTube Playlist',
+          thumbnail: pl.thumbnail || '',
+          duration: '3:30',
+          type: 'music',
+        };
+        player.playTrack(fallbackTrack, [fallbackTrack], 0);
+        setIsPlayerExpanded(true);
+      }
+    } catch (e) {
+      console.warn('Failed to load playlist tracks', e);
     } finally {
       setIsSearching(false);
     }
@@ -87,12 +123,38 @@ export function App() {
     <div className="flex h-screen w-full bg-[#050806] text-slate-100 overflow-hidden font-sans">
       <OfflineIndicator />
 
-      {/* Hidden YouTube Iframe Container */}
+      {/* Live YouTube Video Viewport */}
       <div
-        id="youtube-player-anchor"
-        className="fixed top-0 left-0 w-1 h-1 pointer-events-none opacity-0 overflow-hidden -z-50"
+        id="migatube-yt-viewport"
+        className={`transition-all duration-300 ${
+          isPlayerExpanded && player.mode === 'video'
+            ? 'fixed z-[60] top-20 md:top-24 left-1/2 -translate-x-1/2 w-[92vw] max-w-2xl aspect-video rounded-3xl overflow-hidden shadow-2xl border-2 border-emerald-500/70 bg-black'
+            : isPlayerExpanded && player.mode === 'vinyl'
+            ? 'fixed z-[60] bottom-6 right-6 w-56 aspect-video rounded-2xl overflow-hidden shadow-2xl border border-emerald-500/40 bg-black hidden sm:block'
+            : showFloatingVideo
+            ? 'fixed z-40 bottom-24 right-4 w-48 md:w-60 aspect-video rounded-2xl overflow-hidden shadow-2xl border-2 border-emerald-500/60 bg-black'
+            : 'fixed -top-[9999px] -left-[9999px] w-[320px] h-[180px]'
+        }`}
       >
-        <div id="migatube-yt-iframe" />
+        {!isPlayerExpanded && showFloatingVideo && (
+          <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1">
+            <button
+              onClick={() => setIsPlayerExpanded(true)}
+              className="p-1 rounded-md bg-black/80 hover:bg-black text-white text-[10px] cursor-pointer"
+              title="Expandir reprodutor"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setShowFloatingVideo(false)}
+              className="p-1 rounded-md bg-black/80 hover:bg-black text-white text-[10px] cursor-pointer"
+              title="Ocultar tela flutuante"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+        <div id="migatube-yt-iframe" className="w-full h-full" />
       </div>
 
       {/* Desktop Sidebar */}
@@ -174,17 +236,22 @@ export function App() {
                   )}
                 </h1>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Vídeos, canais e músicas oficiais disponíveis no YouTube.
+                  Vídeos, canais, álbuns e playlists completos do YouTube.
                 </p>
               </div>
 
               <SearchResults
                 results={searchResults.length > 0 ? searchResults : FEATURED_TRACKS}
+                playlists={searchPlaylists}
+                suggestions={searchSuggestions}
+                correctedQuery={correctedQuery}
                 isLoading={isSearching}
                 error={searchError}
                 currentTrack={player.currentTrack}
                 isPlaying={player.isPlaying}
                 onPlayTrack={(track, all) => player.playTrack(track, all)}
+                onPlayPlaylist={handlePlayYouTubePlaylist}
+                onSelectQuery={(q) => handleSearch(q, searchFilter)}
                 onAddToPlaylist={(track) => setSelectedTrackForPlaylist(track)}
                 onOpenArtist={handleOpenArtist}
               />
@@ -230,6 +297,10 @@ export function App() {
         shuffle={player.shuffle}
         isExpanded={isPlayerExpanded}
         settings={settings}
+        showFloatingVideo={showFloatingVideo}
+        onToggleFloatingVideo={() => setShowFloatingVideo(!showFloatingVideo)}
+        playbackError={player.playbackError}
+        onClearPlaybackError={() => player.setPlaybackError(null)}
         onTogglePlay={player.togglePlay}
         onSeek={player.seekTo}
         onSetVolume={player.setVolume}
