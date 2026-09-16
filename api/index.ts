@@ -46,9 +46,10 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ tracks, playlistId: id, total: tracks.length });
   }
 
-  if (pathname.includes('/api/youtube/search')) {
+  if (pathname.includes('/api/youtube/search') || pathname.includes('/api/music/search')) {
     const query = url.searchParams.get('q')?.trim() || '';
     const filter = (url.searchParams.get('filter') || 'TODOS').toUpperCase();
+    const pageToken = url.searchParams.get('pageToken') || undefined;
     const apiKey = process.env.YOUTUBE_API_KEY;
 
     if (!query) {
@@ -58,7 +59,10 @@ export default async function handler(req: any, res: any) {
     if (apiKey) {
       try {
         const typeParam = filter === 'CANAIS' ? 'channel' : filter === 'PLAYLISTS' ? 'playlist' : 'video';
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=${encodeURIComponent(query)}&type=${typeParam}&key=${apiKey}`;
+        let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=${encodeURIComponent(query)}&type=${typeParam}&key=${apiKey}`;
+        if (pageToken) {
+          searchUrl += `&pageToken=${encodeURIComponent(pageToken)}`;
+        }
         const searchRes = await fetch(searchUrl);
         const searchData = await searchRes.json();
 
@@ -98,6 +102,7 @@ export default async function handler(req: any, res: any) {
               thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url,
               duration: durationStr,
               type: isChannel ? 'channel' : 'music',
+              source: 'youtube',
               viewCount: detail?.statistics?.viewCount ? `${(parseInt(detail.statistics.viewCount) / 1000000).toFixed(1)}M visualizações` : undefined,
               publishedAt: item.snippet.publishedAt,
             };
@@ -106,6 +111,7 @@ export default async function handler(req: any, res: any) {
           return res.status(200).json({
             source: 'youtube_data_api_v3',
             results: formatted,
+            nextPageToken: searchData.nextPageToken,
             query,
             total: formatted.length,
           });
@@ -120,7 +126,7 @@ export default async function handler(req: any, res: any) {
       const live = await searchYouTubeLive(query, filter);
       return res.status(200).json({
         source: 'youtube_live_engine',
-        results: live.results,
+        results: live.results.map((t: any) => ({ ...t, source: 'youtube' })),
         playlists: live.playlists,
         suggestions: live.suggestions,
         correctedQuery: live.correctedQuery,
@@ -132,12 +138,12 @@ export default async function handler(req: any, res: any) {
     }
 
     return res.status(200).json({
-      source: 'migatube_catalog_fallback',
+      source: 'search_completed',
       results: [],
       playlists: [],
       suggestions: [query],
       query,
-      message: 'Busca processada.',
+      total: 0,
     });
   }
 

@@ -111,16 +111,15 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
   if (hasNoContent) {
     const popularArtists = [
+      'Zé Ramalho',
       'Marília Mendonça',
+      'Chão de Giz',
+      'Sinônimos',
+      'Legião Urbana',
       'Coldplay',
       'Queen',
-      'Adele',
-      'Alok',
       'Tim Maia',
-      'Ludmilla',
-      'Imagine Dragons',
-      'Michael Jackson',
-      'Henrique e Juliano',
+      'Alok',
       'Bob Marley',
     ];
 
@@ -360,16 +359,21 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
 
                     {/* Content Type Badge */}
                     <div className="absolute top-1 left-1">
-                      <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-black/80 text-[8px] font-mono text-emerald-400 font-bold tracking-wider uppercase">
-                        {track.type === 'video' ? (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-black/85 text-[8px] font-mono text-emerald-400 font-bold tracking-wider uppercase backdrop-blur-sm">
+                        {track.source === 'youtube' ? (
                           <>
-                            <Video className="w-2.5 h-2.5" />
-                            VÍDEO
+                            <Music2 className="w-2.5 h-2.5 text-emerald-400" />
+                            MÚSICA & VÍDEO
+                          </>
+                        ) : track.source === 'soundcloud' ? (
+                          <>
+                            <Disc3 className="w-2.5 h-2.5 text-orange-400" />
+                            MÚSICA STREAM
                           </>
                         ) : (
                           <>
-                            <Disc3 className="w-2.5 h-2.5" />
-                            ÁUDIO
+                            <Disc3 className="w-2.5 h-2.5 text-teal-400" />
+                            MÚSICA LIVRE
                           </>
                         )}
                       </span>

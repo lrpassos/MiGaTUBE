@@ -54,226 +54,6 @@ function parseDurationSec(formatted: string): number {
   return 210;
 }
 
-// Fallback catalog when YOUTUBE_API_KEY is omitted or quota exceeded
-const MOCK_SEARCH_DATABASE = [
-  {
-    id: 'mm-1',
-    youtubeId: 'eCyMh-mZ1B0',
-    title: 'Marília Mendonça - Infiel (Ao Vivo)',
-    artist: 'Marília Mendonça',
-    channelTitle: 'Marília Mendonça Oficial',
-    thumbnail: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&auto=format&fit=crop&q=80',
-    duration: '3:30',
-    type: 'music',
-    genre: 'Sertanejo',
-    album: 'Realidade (Ao Vivo)',
-    viewCount: '580M visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  {
-    id: 'alk-1',
-    youtubeId: 'JVpTp8CXQK9',
-    title: 'Alok, Bruno Martini feat. Zeeba - Hear Me Now',
-    artist: 'Alok',
-    channelTitle: 'Alok Oficial',
-    thumbnail: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&auto=format&fit=crop&q=80',
-    duration: '3:12',
-    type: 'music',
-    genre: 'Eletrônica',
-    album: 'Hear Me Now Single',
-    viewCount: '620M visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  {
-    id: 'adl-1',
-    youtubeId: 'rYEDA3JcQqw',
-    title: 'Adele - Rolling in the Deep',
-    artist: 'Adele',
-    channelTitle: 'Adele Official',
-    thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
-    duration: '3:48',
-    type: 'music',
-    genre: 'Pop',
-    album: '21',
-    viewCount: '2.4B visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  {
-    id: 'tm-1',
-    youtubeId: 'X82u2z85T3E',
-    title: 'Tim Maia - Não Quero Dinheiro (Só Quero Amar)',
-    artist: 'Tim Maia',
-    channelTitle: 'Tim Maia Oficial',
-    thumbnail: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&auto=format&fit=crop&q=80',
-    duration: '2:33',
-    type: 'music',
-    genre: 'Soul / MPB',
-    album: 'Tim Maia 1971',
-    viewCount: '95M visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  {
-    id: 'id-1',
-    youtubeId: '7wtfhZwyrcc',
-    title: 'Imagine Dragons - Believer',
-    artist: 'Imagine Dragons',
-    channelTitle: 'ImagineDragons',
-    thumbnail: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=600&auto=format&fit=crop&q=80',
-    duration: '3:24',
-    type: 'music',
-    genre: 'Rock',
-    album: 'Evolve',
-    viewCount: '2.6B visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  {
-    id: 'bm-3',
-    youtubeId: 'cUS8MA5vptA',
-    title: 'Bob Marley & The Wailers - One Love / People Get Ready',
-    artist: 'Bob Marley & The Wailers',
-    channelTitle: 'Bob Marley',
-    thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
-    duration: '2:52',
-    type: 'music',
-    genre: 'Reggae',
-    album: 'Exodus',
-    viewCount: '190M visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  // Michael Jackson
-  {
-    id: 'mj-1',
-    youtubeId: 'Zi_XLOBDo_Y',
-    title: 'Michael Jackson - Billie Jean (Official Video)',
-    artist: 'Michael Jackson',
-    channelTitle: 'Michael Jackson',
-    thumbnail: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&auto=format&fit=crop&q=80',
-    duration: '4:56',
-    type: 'video',
-    genre: 'Pop',
-    album: 'Thriller',
-    viewCount: '1.4B visualizações',
-  },
-  {
-    id: 'mj-2',
-    youtubeId: 'sOnqjkJTMaA',
-    title: 'Michael Jackson - Thriller (Official 4K Video)',
-    artist: 'Michael Jackson',
-    channelTitle: 'Michael Jackson',
-    thumbnail: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=600&auto=format&fit=crop&q=80',
-    duration: '13:42',
-    type: 'video',
-    genre: 'Pop',
-    album: 'Thriller',
-    viewCount: '1.0B visualizações',
-  },
-  {
-    id: 'mj-3',
-    youtubeId: 'oRdxUFDoQe0',
-    title: 'Michael Jackson - Beat It (Official Music Video)',
-    artist: 'Michael Jackson',
-    channelTitle: 'Michael Jackson',
-    thumbnail: 'https://images.unsplash.com/photo-1526478806334-5fd488fcaabc?w=600&auto=format&fit=crop&q=80',
-    duration: '4:59',
-    type: 'music',
-    genre: 'Pop',
-    album: 'Thriller',
-    viewCount: '950M visualizações',
-  },
-  // Rock & Queen & Coldplay
-  {
-    id: 'qn-1',
-    youtubeId: 'fJ9rUzIMcZQ',
-    title: 'Queen - Bohemian Rhapsody (Official Video Remastered)',
-    artist: 'Queen',
-    channelTitle: 'Queen Official',
-    thumbnail: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=600&auto=format&fit=crop&q=80',
-    duration: '5:55',
-    type: 'video',
-    genre: 'Rock',
-    album: 'A Night at the Opera',
-    viewCount: '1.7B visualizações',
-  },
-  {
-    id: 'cp-1',
-    youtubeId: '1G4isv_Fylg',
-    title: 'Coldplay - Paradise (Official Video)',
-    artist: 'Coldplay',
-    channelTitle: 'Coldplay',
-    thumbnail: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&auto=format&fit=crop&q=80',
-    duration: '4:20',
-    type: 'video',
-    genre: 'Rock',
-    album: 'Mylo Xyloto',
-    viewCount: '1.8B visualizações',
-  },
-  // MPB & Samba
-  {
-    id: 'mpb-1',
-    youtubeId: '8mcsaEqrbfU',
-    title: 'Tom Jobim & Vinicius de Moraes - Garota de Ipanema',
-    artist: 'Tom Jobim & Vinicius de Moraes',
-    channelTitle: 'Bossa Nova Brasil',
-    thumbnail: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&auto=format&fit=crop&q=80',
-    duration: '3:15',
-    type: 'music',
-    genre: 'MPB',
-    album: 'The Composer of Desafinado, Plays',
-    viewCount: '45M visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  {
-    id: 'mpb-2',
-    youtubeId: 'k1-TrAvp_xs',
-    title: 'Elis Regina & Tom Jobim - Águas de Março',
-    artist: 'Elis Regina & Tom Jobim',
-    channelTitle: 'Elis Regina',
-    thumbnail: 'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=600&auto=format&fit=crop&q=80',
-    duration: '3:32',
-    type: 'music',
-    genre: 'MPB',
-    album: 'Elis & Tom',
-    viewCount: '80M visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  {
-    id: 'smb-1',
-    youtubeId: '6d6fIM54Vkk',
-    title: 'Alcione - Não Deixe o Samba Morrer',
-    artist: 'Alcione',
-    channelTitle: 'Alcione Oficial',
-    thumbnail: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&auto=format&fit=crop&q=80',
-    duration: '4:18',
-    type: 'music',
-    genre: 'Samba',
-    album: 'A Voz do Samba',
-    viewCount: '52M visualizações',
-    isUnrestricted: true,
-    source: 'youtube',
-  },
-  {
-    id: 'jz-1',
-    youtubeId: 'vmDDOFXSgAs',
-    title: 'Dave Brubeck Quartet - Take Five',
-    artist: 'Dave Brubeck Quartet',
-    channelTitle: 'Jazz Classics',
-    thumbnail: 'https://images.unsplash.com/photo-1511735111819-9a3f7709049c?w=600&auto=format&fit=crop&q=80',
-    duration: '5:24',
-    type: 'music',
-    genre: 'Jazz',
-    album: 'Time Out',
-    viewCount: '85M visualizações',
-  }
-];
-
 // Health Check API
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({
@@ -301,17 +81,33 @@ app.get('/api/youtube/playlist', async (req: Request, res: Response) => {
 });
 
 // Helper to search YouTube via official API or live scraper
-async function getYouTubeResults(query: string, filter: string) {
+async function getYouTubeResults(query: string, filter: string, pageToken?: string) {
   const apiKey = process.env.YOUTUBE_API_KEY;
 
   if (apiKey) {
     try {
       const typeParam = filter === 'CANAIS' ? 'channel' : filter === 'PLAYLISTS' ? 'playlist' : 'video';
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=${encodeURIComponent(query)}&type=${typeParam}&key=${apiKey}`;
-      const searchRes = await fetch(searchUrl);
-      const searchData = await searchRes.json();
+      let searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=${encodeURIComponent(query)}&type=${typeParam}&key=${apiKey}`;
+      if (pageToken) {
+        searchUrl += `&pageToken=${encodeURIComponent(pageToken)}`;
+      }
 
-      if (searchRes.ok && searchData.items && searchData.items.length > 0) {
+      // Also fetch playlists and suggestions in parallel if not purely filtering channels
+      const promises: Promise<any>[] = [fetch(searchUrl).then(r => r.json())];
+
+      if (filter === 'TODOS' || filter === 'PLAYLISTS') {
+        const plUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=6&q=${encodeURIComponent(query)}&type=playlist&key=${apiKey}`;
+        promises.push(fetch(plUrl).then(r => r.json()).catch(() => ({ items: [] })));
+      } else {
+        promises.push(Promise.resolve({ items: [] }));
+      }
+
+      // Suggestions in parallel
+      promises.push(fetchYouTubeSuggestions(query).catch(() => []));
+
+      const [searchData, plData, suggestions] = await Promise.all(promises);
+
+      if (searchData.items && searchData.items.length > 0) {
         const videoIds = searchData.items
           .filter((item: any) => item.id.kind === 'youtube#video')
           .map((item: any) => item.id.videoId)
@@ -329,39 +125,59 @@ async function getYouTubeResults(query: string, filter: string) {
           }
         }
 
-        const formatted = searchData.items.map((item: any) => {
-          const isChannel = item.id.kind === 'youtube#channel';
-          const isPlaylist = item.id.kind === 'youtube#playlist';
-          const videoId = isChannel ? item.id.channelId : isPlaylist ? item.id.playlistId : item.id.videoId;
-          const detail = videoDetailsMap[videoId];
-          const durationStr = detail ? formatDuration(detail.contentDetails?.duration) : '3:30';
+        const formattedTracks = searchData.items
+          .filter((item: any) => item.id.kind === 'youtube#video' || item.id.kind === 'youtube#channel')
+          .map((item: any) => {
+            const isChannel = item.id.kind === 'youtube#channel';
+            const videoId = isChannel ? item.id.channelId : item.id.videoId;
+            const detail = videoDetailsMap[videoId];
+            const durationStr = detail ? formatDuration(detail.contentDetails?.duration) : '3:30';
 
-          const title = item.snippet.title.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
-          const channelTitle = item.snippet.channelTitle;
+            const rawTitle = item.snippet.title.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+            const channelTitle = item.snippet.channelTitle || '';
 
-          const lowerTitle = title.toLowerCase();
-          const isAudioVisual = lowerTitle.includes('audio') || lowerTitle.includes('lyric') || lowerTitle.includes('track') || lowerTitle.includes('album') || !lowerTitle.includes('clip');
+            // Clean title and extract artist if formatted as "Artist - Title"
+            let artist = channelTitle;
+            let displayTitle = rawTitle;
+            if (rawTitle.includes(' - ')) {
+              const parts = rawTitle.split(' - ');
+              if (parts.length >= 2 && !channelTitle.toLowerCase().includes(parts[0].trim().toLowerCase())) {
+                artist = parts[0].trim();
+                displayTitle = parts.slice(1).join(' - ').trim();
+              }
+            }
 
-          return {
-            id: `yt-${videoId}`,
-            youtubeId: videoId,
-            title,
-            artist: channelTitle || 'Artista Oficial',
-            channelTitle,
+            return {
+              id: `yt-${videoId}`,
+              youtubeId: videoId,
+              title: rawTitle,
+              artist: artist || channelTitle || 'Artista Oficial',
+              channelTitle,
+              thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
+              duration: durationStr,
+              durationSec: parseDurationSec(durationStr),
+              type: isChannel ? 'channel' : 'music', // All YouTube tracks are fully playable as music
+              viewCount: detail?.statistics?.viewCount ? `${(parseInt(detail.statistics.viewCount) / 1000000).toFixed(1)}M visualizações` : undefined,
+              publishedAt: item.snippet.publishedAt,
+              source: 'youtube',
+            };
+          });
+
+        const formattedPlaylists = (plData.items || [])
+          .filter((item: any) => item.id.kind === 'youtube#playlist')
+          .map((item: any) => ({
+            id: item.id.playlistId,
+            title: item.snippet.title.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&'),
+            author: item.snippet.channelTitle || 'YouTube',
+            videoCount: 'Álbum / Playlist Completa',
             thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url,
-            duration: durationStr,
-            durationSec: parseDurationSec(durationStr),
-            type: isChannel ? 'channel' : isAudioVisual ? 'music' : 'video',
-            viewCount: detail?.statistics?.viewCount ? `${(parseInt(detail.statistics.viewCount) / 1000000).toFixed(1)}M visualizações` : undefined,
-            publishedAt: item.snippet.publishedAt,
-            source: 'youtube',
-          };
-        });
+          }));
 
         return {
-          results: formatted,
-          playlists: [],
-          suggestions: [],
+          results: formattedTracks,
+          playlists: formattedPlaylists,
+          suggestions: suggestions || [],
+          nextPageToken: searchData.nextPageToken,
           source: 'youtube_data_api_v3',
         };
       }
@@ -394,6 +210,7 @@ async function handleMultiSourceSearch(req: Request, res: Response) {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const filter = (typeof req.query.filter === 'string' ? req.query.filter.toUpperCase() : 'TODOS');
   const source = (typeof req.query.source === 'string' ? req.query.source.toLowerCase() : 'all');
+  const pageToken = typeof req.query.pageToken === 'string' ? req.query.pageToken : undefined;
 
   if (!query) {
     return res.json({
@@ -411,6 +228,7 @@ async function handleMultiSourceSearch(req: Request, res: Response) {
     let ytPlaylists: any[] = [];
     let suggestions: string[] = [];
     let correctedQuery: string | undefined;
+    let nextPageToken: string | undefined;
     let jamResults: any[] = [];
     let scResults: any[] = [];
 
@@ -418,10 +236,11 @@ async function handleMultiSourceSearch(req: Request, res: Response) {
 
     if (source === 'all' || source === 'youtube') {
       promises.push(
-        getYouTubeResults(query, filter)
+        getYouTubeResults(query, filter, pageToken)
           .then(data => {
             ytResults = data.results || [];
             ytPlaylists = data.playlists || [];
+            if (data.nextPageToken) nextPageToken = data.nextPageToken;
             if (data.suggestions?.length) suggestions = data.suggestions;
             if (data.correctedQuery) correctedQuery = data.correctedQuery;
           })
@@ -429,7 +248,7 @@ async function handleMultiSourceSearch(req: Request, res: Response) {
       );
     }
 
-    if (source === 'all' || source === 'jamendo') {
+    if (!pageToken && (source === 'all' || source === 'jamendo')) {
       promises.push(
         searchJamendo(query, 25)
           .then(data => {
@@ -439,7 +258,7 @@ async function handleMultiSourceSearch(req: Request, res: Response) {
       );
     }
 
-    if (source === 'all' || source === 'soundcloud') {
+    if (!pageToken && (source === 'all' || source === 'soundcloud')) {
       promises.push(
         searchSoundCloud(query, 25)
           .then(data => {
@@ -473,22 +292,10 @@ async function handleMultiSourceSearch(req: Request, res: Response) {
     if (filter === 'MÚSICAS') {
       combinedResults = combinedResults.filter(t => t.type === 'music');
     } else if (filter === 'VÍDEOS') {
-      combinedResults = combinedResults.filter(t => t.type === 'video');
-    } else if (filter === 'SEM RESTRIÇÃO') {
-      combinedResults = combinedResults.filter(t => t.isUnrestricted || t.source === 'jamendo' || t.source === 'soundcloud');
-    }
-
-    // If completely empty, try contextual matching against curated items
-    if (combinedResults.length === 0 && ytPlaylists.length === 0) {
-      const cleanQ = query.toLowerCase();
-      const matched = MOCK_SEARCH_DATABASE.filter(item =>
-        item.title.toLowerCase().includes(cleanQ) ||
-        item.artist.toLowerCase().includes(cleanQ) ||
-        (item.genre && item.genre.toLowerCase().includes(cleanQ))
-      );
-      if (matched.length > 0) {
-        combinedResults = matched;
-      }
+      // In MiGaTUBE, all YouTube tracks have video clips and video player available
+      combinedResults = combinedResults.filter(t => t.source === 'youtube');
+    } else if (filter === 'CANAIS') {
+      combinedResults = combinedResults.filter(t => t.type === 'channel');
     }
 
     const totalCount = combinedResults.length + ytPlaylists.length;
@@ -497,8 +304,9 @@ async function handleMultiSourceSearch(req: Request, res: Response) {
       source: `multi_source_${source}`,
       results: combinedResults,
       playlists: ytPlaylists,
-      suggestions: suggestions.length > 0 ? suggestions : [query, `${query} hits`, `${query} remix`, `${query} live`],
+      suggestions: suggestions.length > 0 ? suggestions : [query, `${query} hits`, `${query} remix`, `${query} ao vivo`],
       correctedQuery,
+      nextPageToken,
       query,
       total: totalCount,
       countsBySource: {

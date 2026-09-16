@@ -55,7 +55,8 @@ export async function resolveStreamUrl(sourceUrl: string): Promise<string | null
 export async function searchMusic(
   query: string,
   filter: SearchFilter = 'TODOS',
-  source: MusicSource = 'all'
+  source: MusicSource = 'all',
+  pageToken?: string
 ): Promise<SearchResponse> {
   const cleanQ = query.trim();
   if (!cleanQ) {
@@ -69,59 +70,47 @@ export async function searchMusic(
     };
   }
 
-  try {
-    const res = await fetch(
-      `/api/music/search?q=${encodeURIComponent(cleanQ)}&filter=${encodeURIComponent(filter)}&source=${encodeURIComponent(source)}`
-    );
-    if (res.ok) {
-      const data = await res.json();
-      if (data && (Array.isArray(data.results) || Array.isArray(data.playlists))) {
-        return {
-          results: Array.isArray(data.results) ? data.results : [],
-          playlists: Array.isArray(data.playlists) ? data.playlists : [],
-          suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
-          correctedQuery: data.correctedQuery,
-          query: cleanQ,
-          total: (data.results?.length || 0) + (data.playlists?.length || 0),
-          source: data.source,
-          countsBySource: data.countsBySource || {
-            all: data.results?.length || 0,
-            youtube: (data.results || []).filter((r: Track) => r.source === 'youtube').length,
-            jamendo: (data.results || []).filter((r: Track) => r.source === 'jamendo').length,
-            soundcloud: (data.results || []).filter((r: Track) => r.source === 'soundcloud').length,
-          },
-        };
-      }
-    }
-  } catch (err) {
-    console.warn('Network request to /api/music/search failed, using client fallback', err);
+  const params = new URLSearchParams({
+    q: cleanQ,
+    filter,
+    source,
+  });
+  if (pageToken) {
+    params.set('pageToken', pageToken);
   }
 
-  // Client-side fallback matching
-  const lower = cleanQ.toLowerCase();
-  let matched = FEATURED_TRACKS.filter(t => {
-    return (
-      t.title.toLowerCase().includes(lower) ||
-      t.artist.toLowerCase().includes(lower) ||
-      (t.genre && t.genre.toLowerCase().includes(lower)) ||
-      (t.album && t.album.toLowerCase().includes(lower))
-    );
-  });
+  const res = await fetch(`/api/music/search?${params.toString()}`);
+  if (!res.ok) {
+    throw new Error('Não foi possível realizar a pesquisa. Verifique a conexão ou a configuração da API.');
+  }
 
-  if (filter === 'MÚSICAS') {
-    matched = matched.filter(t => t.type === 'music');
-  } else if (filter === 'VÍDEOS') {
-    matched = matched.filter(t => t.type === 'video');
+  const data = await res.json();
+  if (!data || (!Array.isArray(data.results) && !Array.isArray(data.playlists))) {
+    return {
+      results: [],
+      playlists: [],
+      suggestions: [],
+      query: cleanQ,
+      total: 0,
+      countsBySource: { all: 0, youtube: 0, jamendo: 0, soundcloud: 0 },
+    };
   }
 
   return {
-    results: matched,
-    playlists: [],
-    suggestions: [cleanQ, `${cleanQ} Greatest Hits`, `${cleanQ} Playlist`],
+    results: Array.isArray(data.results) ? data.results : [],
+    playlists: Array.isArray(data.playlists) ? data.playlists : [],
+    suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+    correctedQuery: data.correctedQuery,
+    nextPageToken: data.nextPageToken,
     query: cleanQ,
-    total: matched.length,
-    source: 'client_curated_fallback',
-    countsBySource: { all: matched.length, youtube: matched.length, jamendo: 0, soundcloud: 0 },
+    total: data.total || (data.results?.length || 0) + (data.playlists?.length || 0),
+    source: data.source,
+    countsBySource: data.countsBySource || {
+      all: (data.results?.length || 0) + (data.playlists?.length || 0),
+      youtube: (data.results || []).filter((r: Track) => r.source === 'youtube').length,
+      jamendo: (data.results || []).filter((r: Track) => r.source === 'jamendo').length,
+      soundcloud: (data.results || []).filter((r: Track) => r.source === 'soundcloud').length,
+    },
   };
 }
 

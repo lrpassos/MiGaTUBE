@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Heart, Disc3, Radio } from 'lucide-react';
+import { Home, Search, Heart, Disc3, History, Radio } from 'lucide-react';
 import { NavigationTab } from '../types';
 
 interface BottomNavigationProps {
@@ -18,78 +18,98 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   return (
     <nav
       id="bottom-navigation-mobile"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#060e09]/95 backdrop-blur-lg border-t border-emerald-950/80 px-2 py-1 pb-safe flex items-center justify-around select-none"
+      aria-label="Navegação mobile"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#060e09]/95 backdrop-blur-xl border-t border-emerald-950/90 select-none"
+      style={{
+        paddingBottom: 'max(6px, env(safe-area-inset-bottom, 6px))',
+      }}
     >
-      <button
-        type="button"
-        id="nav-mobile-home"
-        onClick={() => onSelectTab('home')}
-        className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
-          currentTab === 'home'
-            ? 'text-emerald-400 font-bold'
-            : 'text-zinc-500 hover:text-zinc-300'
-        }`}
-      >
-        <Home className="w-5 h-5 mb-0.5" />
-        <span className="text-[10px] tracking-wider uppercase">Início</span>
-      </button>
+      <div className="flex items-center justify-around overflow-x-auto no-scrollbar w-full px-1 py-1 gap-1">
+        <button
+          type="button"
+          id="nav-mobile-home"
+          onClick={() => onSelectTab('home')}
+          className={`min-w-[54px] sm:min-w-[62px] min-h-[46px] flex flex-col items-center justify-center rounded-xl transition-all shrink-0 cursor-pointer ${
+            currentTab === 'home'
+              ? 'text-emerald-400 font-bold bg-emerald-950/40'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Home className="w-5 h-5 mb-0.5 shrink-0" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap leading-tight">Início</span>
+        </button>
 
-      <button
-        type="button"
-        id="nav-mobile-search"
-        onClick={() => onSelectTab('search')}
-        className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
-          currentTab === 'search'
-            ? 'text-emerald-400 font-bold'
-            : 'text-zinc-500 hover:text-zinc-300'
-        }`}
-      >
-        <Search className="w-5 h-5 mb-0.5" />
-        <span className="text-[10px] tracking-wider uppercase">Pesquisar</span>
-      </button>
+        <button
+          type="button"
+          id="nav-mobile-search"
+          onClick={() => onSelectTab('search')}
+          className={`min-w-[54px] sm:min-w-[62px] min-h-[46px] flex flex-col items-center justify-center rounded-xl transition-all shrink-0 cursor-pointer ${
+            currentTab === 'search'
+              ? 'text-emerald-400 font-bold bg-emerald-950/40'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Search className="w-5 h-5 mb-0.5 shrink-0" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap leading-tight">Busca</span>
+        </button>
 
-      <button
-        type="button"
-        id="nav-mobile-favorites"
-        onClick={() => onSelectTab('favorites')}
-        className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
-          currentTab === 'favorites'
-            ? 'text-emerald-400 font-bold'
-            : 'text-zinc-500 hover:text-zinc-300'
-        }`}
-      >
-        <Heart className="w-5 h-5 mb-0.5" />
-        <span className="text-[10px] tracking-wider uppercase">Favoritos</span>
-      </button>
+        <button
+          type="button"
+          id="nav-mobile-favorites"
+          onClick={() => onSelectTab('favorites')}
+          className={`min-w-[54px] sm:min-w-[62px] min-h-[46px] flex flex-col items-center justify-center rounded-xl transition-all shrink-0 cursor-pointer ${
+            currentTab === 'favorites'
+              ? 'text-emerald-400 font-bold bg-emerald-950/40'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Heart className="w-5 h-5 mb-0.5 shrink-0" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap leading-tight">Favoritos</span>
+        </button>
 
-      <button
-        type="button"
-        id="nav-mobile-playlists"
-        onClick={() => onSelectTab('playlists')}
-        className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all cursor-pointer ${
-          currentTab === 'playlists'
-            ? 'text-emerald-400 font-bold'
-            : 'text-zinc-500 hover:text-zinc-300'
-        }`}
-      >
-        <Disc3 className="w-5 h-5 mb-0.5" />
-        <span className="text-[10px] tracking-wider uppercase">Playlists</span>
-      </button>
+        <button
+          type="button"
+          id="nav-mobile-playlists"
+          onClick={() => onSelectTab('playlists')}
+          className={`min-w-[54px] sm:min-w-[62px] min-h-[46px] flex flex-col items-center justify-center rounded-xl transition-all shrink-0 cursor-pointer ${
+            currentTab === 'playlists'
+              ? 'text-emerald-400 font-bold bg-emerald-950/40'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <Disc3 className="w-5 h-5 mb-0.5 shrink-0" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap leading-tight">Playlists</span>
+        </button>
 
-      <button
-        type="button"
-        id="nav-mobile-player"
-        onClick={onOpenPlayer}
-        className="flex flex-col items-center justify-center py-1.5 px-3 rounded-xl text-emerald-400 hover:text-emerald-300 transition-all cursor-pointer"
-      >
-        <div className="relative">
-          <Radio className={`w-5 h-5 mb-0.5 ${isPlaying ? 'animate-pulse text-[#00ff88]' : ''}`} />
-          {isPlaying && (
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#00ff88] animate-ping" />
-          )}
-        </div>
-        <span className="text-[10px] tracking-wider uppercase font-semibold">Player</span>
-      </button>
+        <button
+          type="button"
+          id="nav-mobile-history"
+          onClick={() => onSelectTab('history')}
+          className={`min-w-[54px] sm:min-w-[62px] min-h-[46px] flex flex-col items-center justify-center rounded-xl transition-all shrink-0 cursor-pointer ${
+            currentTab === 'history'
+              ? 'text-emerald-400 font-bold bg-emerald-950/40'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <History className="w-5 h-5 mb-0.5 shrink-0" />
+          <span className="text-[10px] tracking-wider uppercase whitespace-nowrap leading-tight">Histórico</span>
+        </button>
+
+        <button
+          type="button"
+          id="nav-mobile-player"
+          onClick={onOpenPlayer}
+          className="min-w-[54px] sm:min-w-[62px] min-h-[46px] flex flex-col items-center justify-center rounded-xl text-emerald-400 hover:text-emerald-300 transition-all shrink-0 cursor-pointer"
+        >
+          <div className="relative shrink-0">
+            <Radio className={`w-5 h-5 mb-0.5 ${isPlaying ? 'animate-pulse text-[#00ff88]' : ''}`} />
+            {isPlaying && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#00ff88] animate-ping" />
+            )}
+          </div>
+          <span className="text-[10px] tracking-wider uppercase font-semibold whitespace-nowrap leading-tight">Deck</span>
+        </button>
+      </div>
     </nav>
   );
 };

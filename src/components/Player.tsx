@@ -126,7 +126,7 @@ export const Player: React.FC<PlayerProps> = ({
       {/* 1. PERSISTENT BOTTOM PLAYER BAR */}
       <div
         id="persistent-bottom-player"
-        className="fixed bottom-14 md:bottom-0 inset-x-0 z-30 bg-[#060d09]/95 border-t border-emerald-950/90 backdrop-blur-xl px-3 md:px-6 py-2.5 transition-all select-none"
+        className="fixed bottom-[calc(54px+max(6px,env(safe-area-inset-bottom,6px)))] md:bottom-0 inset-x-0 z-30 bg-[#060d09]/95 border-t border-emerald-950/90 backdrop-blur-xl px-3 md:px-6 py-2.5 transition-all select-none"
       >
         {/* Progress Bar (Clickable top edge) */}
         <div

@@ -2,6 +2,38 @@ import { Track, Playlist, ArtistInfo, AlbumInfo } from '../types';
 
 export const FEATURED_TRACKS: Track[] = [
   {
+    id: 'zr-1',
+    youtubeId: 'FBMMNBOXins',
+    title: 'Chão de Giz (Ao Vivo)',
+    artist: 'Zé Ramalho',
+    channelTitle: 'Zé Ramalho Oficial',
+    thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+    duration: '4:45',
+    durationSec: 285,
+    type: 'music',
+    album: 'Zé Ramalho Ao Vivo',
+    genre: 'MPB / Folk Rock',
+    viewCount: '110M visualizações',
+    isUnrestricted: true,
+    source: 'youtube',
+  },
+  {
+    id: 'zr-2',
+    youtubeId: 'FUz0a2cl_RM',
+    title: 'Sinônimos (Ao Vivo)',
+    artist: 'Zé Ramalho',
+    channelTitle: 'Zé Ramalho Oficial',
+    thumbnail: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=600&auto=format&fit=crop&q=80',
+    duration: '4:30',
+    durationSec: 270,
+    type: 'music',
+    album: 'Zé Ramalho Ao Vivo',
+    genre: 'MPB',
+    viewCount: '150M visualizações',
+    isUnrestricted: true,
+    source: 'youtube',
+  },
+  {
     id: 'mm-1',
     youtubeId: 'eCyMh-mZ1B0',
     title: 'Infiel (Ao Vivo)',
@@ -252,6 +284,80 @@ export const SUGGESTED_SEARCHES = [
 ];
 
 export const ARTISTS_DATABASE: Record<string, ArtistInfo> = {
+  'zé ramalho': {
+    id: 'artist-ze-ramalho',
+    name: 'Zé Ramalho',
+    thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+    banner: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
+    genre: 'MPB / Folk Rock / Nordeste Psicodélico',
+    bio: 'Poeta, cantor e compositor paraibano. Um dos maiores ícones da MPB e do folk rock brasileiro, autor de clássicos imortais como Chão de Giz, Sinônimos, Admirável Gado Novo e Avôhai.',
+    subscribers: '1.9M inscritos',
+    topTracks: FEATURED_TRACKS.filter(t => t.artist.toLowerCase().includes('ramalho')),
+    topVideos: [
+      {
+        id: 'zr-v1',
+        youtubeId: 'FBMMNBOXins',
+        title: 'Zé Ramalho - Chão de Giz (Ao Vivo 2005) (Clipe Oficial)',
+        artist: 'Zé Ramalho',
+        thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+        duration: '4:45',
+        type: 'video',
+        viewCount: '110M visualizações',
+      },
+      {
+        id: 'zr-v2',
+        youtubeId: 'FUz0a2cl_RM',
+        title: 'Zé Ramalho - Sinônimos (Ao Vivo 2005) (Clipe Oficial)',
+        artist: 'Zé Ramalho',
+        thumbnail: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=600&auto=format&fit=crop&q=80',
+        duration: '4:30',
+        type: 'video',
+        viewCount: '150M visualizações',
+      }
+    ],
+    relatedArtists: [
+      { name: 'Alceu Valença', thumbnail: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80', genre: 'MPB / Forró' },
+      { name: 'Geraldo Azevedo', thumbnail: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&auto=format&fit=crop&q=80', genre: 'MPB / Folk' },
+      { name: 'Raul Seixas', thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&auto=format&fit=crop&q=80', genre: 'Rock Nacional' },
+    ]
+  },
+  'ze ramalho': {
+    id: 'artist-ze-ramalho',
+    name: 'Zé Ramalho',
+    thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+    banner: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80',
+    genre: 'MPB / Folk Rock / Nordeste Psicodélico',
+    bio: 'Poeta, cantor e compositor paraibano. Um dos maiores ícones da MPB e do folk rock brasileiro, autor de clássicos imortais como Chão de Giz, Sinônimos, Admirável Gado Novo e Avôhai.',
+    subscribers: '1.9M inscritos',
+    topTracks: FEATURED_TRACKS.filter(t => t.artist.toLowerCase().includes('ramalho')),
+    topVideos: [
+      {
+        id: 'zr-v1',
+        youtubeId: 'FBMMNBOXins',
+        title: 'Zé Ramalho - Chão de Giz (Ao Vivo 2005) (Clipe Oficial)',
+        artist: 'Zé Ramalho',
+        thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+        duration: '4:45',
+        type: 'video',
+        viewCount: '110M visualizações',
+      },
+      {
+        id: 'zr-v2',
+        youtubeId: 'FUz0a2cl_RM',
+        title: 'Zé Ramalho - Sinônimos (Ao Vivo 2005) (Clipe Oficial)',
+        artist: 'Zé Ramalho',
+        thumbnail: 'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=600&auto=format&fit=crop&q=80',
+        duration: '4:30',
+        type: 'video',
+        viewCount: '150M visualizações',
+      }
+    ],
+    relatedArtists: [
+      { name: 'Alceu Valença', thumbnail: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&auto=format&fit=crop&q=80', genre: 'MPB / Forró' },
+      { name: 'Geraldo Azevedo', thumbnail: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300&auto=format&fit=crop&q=80', genre: 'MPB / Folk' },
+      { name: 'Raul Seixas', thumbnail: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&auto=format&fit=crop&q=80', genre: 'Rock Nacional' },
+    ]
+  },
   'bob marley': {
     id: 'artist-bob-marley',
     name: 'Bob Marley',

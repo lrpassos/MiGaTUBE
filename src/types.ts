@@ -66,7 +66,7 @@ export type NavigationTab =
   | 'album' 
   | 'settings';
 
-export type SearchFilter = 'TODOS' | 'SEM RESTRIÇÃO' | 'MÚSICAS' | 'VÍDEOS' | 'PLAYLISTS' | 'CANAIS';
+export type SearchFilter = 'TODOS' | 'MÚSICAS' | 'VÍDEOS' | 'PLAYLISTS' | 'CANAIS';
 
 export interface YouTubePlaylist {
   id: string;
@@ -85,6 +85,7 @@ export interface SearchResponse {
   query: string;
   total: number;
   source?: string;
+  nextPageToken?: string;
   countsBySource?: {
     all: number;
     youtube: number;

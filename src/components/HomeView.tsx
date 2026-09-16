@@ -31,16 +31,17 @@ interface HomeViewProps {
 }
 
 const QUICK_SEARCH_CHIPS = [
+  { label: 'Zé Ramalho', query: 'Zé Ramalho' },
+  { label: 'Chão de Giz', query: 'Zé Ramalho Chão de Giz' },
+  { label: 'Sinônimos', query: 'Zé Ramalho Sinônimos' },
   { label: 'Marília Mendonça', query: 'Marília Mendonça' },
+  { label: 'Legião Urbana', query: 'Legião Urbana' },
   { label: 'Coldplay', query: 'Coldplay' },
   { label: 'Queen', query: 'Queen' },
   { label: 'Alok', query: 'Alok' },
-  { label: 'Adele', query: 'Adele' },
-  { label: 'Bob Marley', query: 'Bob Marley' },
-  { label: 'Ludmilla', query: 'Ludmilla' },
   { label: 'Tim Maia', query: 'Tim Maia' },
+  { label: 'Bob Marley', query: 'Bob Marley' },
   { label: 'Lo-Fi Chill', query: 'Lo-Fi Chill Beats' },
-  { label: 'Acoustic Guitar', query: 'Acoustic Guitar' },
 ];
 
 export const HomeView: React.FC<HomeViewProps> = ({

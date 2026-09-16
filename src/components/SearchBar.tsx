@@ -13,32 +13,32 @@ interface SearchBarProps {
 }
 
 const FILTERS: { id: SearchFilter; label: string }[] = [
-  { id: 'TODOS', label: 'Todos os Tipos' },
-  { id: 'SEM RESTRIÇÃO', label: '⚡ Sem Restrição' },
+  { id: 'TODOS', label: 'Tudo (Músicas & Vídeos)' },
   { id: 'MÚSICAS', label: 'Músicas' },
-  { id: 'VÍDEOS', label: 'Vídeos' },
-  { id: 'PLAYLISTS', label: 'Playlists' },
-  { id: 'CANAIS', label: 'Canais' },
+  { id: 'VÍDEOS', label: 'Vídeos / Clipes' },
+  { id: 'PLAYLISTS', label: 'Playlists & Álbuns' },
+  { id: 'CANAIS', label: 'Canais Oficiais' },
 ];
 
 const SOURCES: { id: MusicSource; label: string; dotClass: string; activeClass: string }[] = [
   { id: 'all', label: 'Todas as Fontes', dotClass: 'bg-emerald-400', activeClass: 'bg-emerald-500 text-black shadow-emerald-500/30' },
-  { id: 'youtube', label: 'YouTube', dotClass: 'bg-red-500', activeClass: 'bg-red-600 text-white shadow-red-600/30' },
+  { id: 'youtube', label: 'YouTube (Músicas & Vídeos)', dotClass: 'bg-red-500', activeClass: 'bg-red-600 text-white shadow-red-600/30' },
   { id: 'soundcloud', label: 'SoundCloud', dotClass: 'bg-orange-500', activeClass: 'bg-orange-600 text-white shadow-orange-600/30' },
-  { id: 'jamendo', label: 'Jamendo', dotClass: 'bg-teal-400', activeClass: 'bg-teal-500 text-black shadow-teal-500/30' },
+  { id: 'jamendo', label: 'Jamendo Livre', dotClass: 'bg-teal-400', activeClass: 'bg-teal-500 text-black shadow-teal-500/30' },
 ];
 
 const POPULAR_SUGGESTIONS = [
+  'Zé Ramalho',
+  'Chão de Giz',
+  'Sinônimos',
+  'Admirável Gado Novo',
   'Marília Mendonça',
+  'Legião Urbana',
+  'Tim Maia',
+  'Alok',
   'Coldplay',
   'Queen',
-  'Adele',
-  'Alok',
   'Bob Marley',
-  'Ludmilla',
-  'Tim Maia',
-  'Anitta',
-  'Acoustic Guitar',
 ];
 
 export const SearchBar: React.FC<SearchBarProps> = ({
@@ -86,6 +86,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
     return () => clearTimeout(timer);
   }, [query]);
+
+  // Debounced auto-trigger search as user types (500ms delay)
+  useEffect(() => {
+    const cleanQ = query.trim();
+    if (!cleanQ || cleanQ.length < 2) return;
+
+    // Only auto-search if it differs from the last searched query
+    if (cleanQ === initialQuery?.trim()) return;
+
+    const autoTimer = setTimeout(() => {
+      onSearch(cleanQ, filter, source);
+    }, 500);
+
+    return () => clearTimeout(autoTimer);
+  }, [query, filter, source, initialQuery]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -138,7 +153,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
         <input
           id="search-input"
-          type="text"
+          type="search"
+          inputMode="search"
+          enterKeyHint="search"
           value={query}
           onFocus={() => setShowDropdown(true)}
           onChange={(e) => {
