@@ -7,6 +7,9 @@ import { createServer as createViteServer } from 'vite';
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
+// Ensure HMR is disabled in AI Studio container environment to prevent websocket connection errors
+process.env.DISABLE_HMR = 'true';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -358,7 +361,7 @@ app.get('/api/youtube/search', async (req: Request, res: Response) => {
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: 'spa',
     });
     app.use(vite.middlewares);

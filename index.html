@@ -1,6 +1,20 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    <script>
+      (function() {
+        var origWarn = console.warn;
+        var origError = console.error;
+        console.warn = function() {
+          if (typeof arguments[0] === 'string' && arguments[0].indexOf('[vite]') !== -1) return;
+          origWarn.apply(console, arguments);
+        };
+        console.error = function() {
+          if (typeof arguments[0] === 'string' && arguments[0].indexOf('[vite]') !== -1) return;
+          origError.apply(console, arguments);
+        };
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>MiGaTUBE - Música, Vídeo e Rádio Digital</title>
