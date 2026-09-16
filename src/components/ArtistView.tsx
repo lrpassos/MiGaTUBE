@@ -1,7 +1,8 @@
-import React from 'react';
-import { ArrowLeft, Play, Disc3, Heart, Plus, Users, Radio, ExternalLink, Video } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Play, Disc3, Heart, Plus, Users, Radio, ExternalLink, Video, Sparkles, Loader2 } from 'lucide-react';
 import { Track } from '../types';
 import { FEATURED_TRACKS, FEATURED_ARTISTS, FeaturedArtist } from '../lib/curatedData';
+import { searchMusic } from '../lib/youtube';
 import { storage } from '../lib/storage';
 
 interface ArtistViewProps {
@@ -19,20 +20,58 @@ export const ArtistView: React.FC<ArtistViewProps> = ({
   onAddToPlaylist,
   onOpenArtist,
 }) => {
+  const [artistTracks, setArtistTracks] = useState<Track[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   // Find artist data in catalog or synthesize profile
   const knownArtist = FEATURED_ARTISTS.find(
     (a) => a.name.toLowerCase() === artistName.toLowerCase()
   );
 
-  const artistTracks = FEATURED_TRACKS.filter(
-    (t) => t.artist.toLowerCase().includes(artistName.toLowerCase()) ||
-           (knownArtist && t.genre === knownArtist.genre)
-  );
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
 
-  const artistBio = knownArtist?.bio || `Ícone da música global com milhões de reproduções ao redor do mundo. Apresentando grandes sucessos no MiGaTUBE com qualidade sonora e experiência analógica de vinil digital.`;
-  const artistAvatar = knownArtist?.avatarUrl || `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80`;
-  const artistCover = knownArtist?.coverUrl || `https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80`;
-  const subscribers = knownArtist?.subscribers || '12.4M inscritos';
+    const loadArtistTracks = async () => {
+      try {
+        const res = await searchMusic(artistName, 'MÚSICAS', 'all');
+        if (isMounted) {
+          if (res.results && res.results.length > 0) {
+            setArtistTracks(res.results);
+          } else {
+            // Fallback only to exact artist matches, never unrelated artists
+            const localMatches = FEATURED_TRACKS.filter(t =>
+              t.artist.toLowerCase().includes(artistName.toLowerCase()) ||
+              t.title.toLowerCase().includes(artistName.toLowerCase())
+            );
+            setArtistTracks(localMatches);
+          }
+        }
+      } catch {
+        if (isMounted) {
+          const localMatches = FEATURED_TRACKS.filter(t =>
+            t.artist.toLowerCase().includes(artistName.toLowerCase())
+          );
+          setArtistTracks(localMatches);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadArtistTracks();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [artistName]);
+
+  const artistBio = knownArtist?.bio || `Apresentando grandes sucessos de ${artistName} no MiGaTUBE com áudio de alta fidelidade e deck analógico.`;
+  const artistAvatar = knownArtist?.avatarUrl || artistTracks[0]?.thumbnail || `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=80`;
+  const artistCover = knownArtist?.coverUrl || artistTracks[0]?.thumbnail || `https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1200&auto=format&fit=crop&q=80`;
+  const subscribers = knownArtist?.subscribers || 'Artista Oficial';
 
   const handlePlayAll = () => {
     if (artistTracks.length > 0) {
@@ -108,52 +147,86 @@ export const ArtistView: React.FC<ArtistViewProps> = ({
 
       {/* Top Tracks by this Artist */}
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Disc3 className="w-5 h-5 text-emerald-400" />
-          Melhores Músicas
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            <Disc3 className="w-5 h-5 text-emerald-400" />
+            Músicas de {artistName}
+          </h2>
+          {artistTracks.length > 0 && (
+            <span className="text-xs text-zinc-500 font-mono">
+              {artistTracks.length} faixas disponíveis
+            </span>
+          )}
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-          {artistTracks.map((track, idx) => (
-            <div
-              key={track.id || track.youtubeId}
-              onClick={() => onPlayTrack(track, artistTracks)}
-              className="flex items-center justify-between p-3 rounded-2xl bg-[#09150f]/70 hover:bg-[#0c1f16] border border-emerald-950/80 hover:border-emerald-800 transition-all cursor-pointer group"
-            >
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <span className="w-5 text-center text-xs font-mono text-zinc-500 group-hover:text-emerald-400">
-                  {idx + 1}
-                </span>
-                <img
-                  src={track.thumbnail}
-                  alt={track.title}
-                  className="w-12 h-12 rounded-xl object-cover shrink-0"
-                />
-                <div className="min-w-0 pr-2">
-                  <h4 className="text-sm font-semibold text-slate-100 group-hover:text-emerald-300 truncate">
-                    {track.title}
-                  </h4>
-                  <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {[1, 2, 3, 4, 5, 6].map((n) => (
+              <div
+                key={n}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-[#09150f]/40 border border-emerald-950/60 animate-pulse"
+              >
+                <div className="w-12 h-12 rounded-xl bg-emerald-950/50 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 bg-emerald-950/70 rounded w-3/4" />
+                  <div className="h-2.5 bg-emerald-950/40 rounded w-1/2" />
                 </div>
               </div>
+            ))}
+          </div>
+        ) : artistTracks.length === 0 ? (
+          <div className="py-12 text-center rounded-2xl border border-emerald-950/80 bg-[#09150f]/40 space-y-2">
+            <Disc3 className="w-8 h-8 text-zinc-500 mx-auto" />
+            <p className="text-zinc-300 text-sm font-medium">
+              Nenhuma faixa encontrada especificamente para este artista.
+            </p>
+            <p className="text-zinc-500 text-xs">
+              Você pode buscar no campo de pesquisa acima para explorar álbuns e shows completos.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {artistTracks.map((track, idx) => (
+              <div
+                key={track.id || track.youtubeId}
+                onClick={() => onPlayTrack(track, artistTracks)}
+                className="flex items-center justify-between p-3 rounded-2xl bg-[#09150f]/70 hover:bg-[#0c1f16] border border-emerald-950/80 hover:border-emerald-800 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <span className="w-5 text-center text-xs font-mono text-zinc-500 group-hover:text-emerald-400">
+                    {idx + 1}
+                  </span>
+                  <img
+                    src={track.thumbnail}
+                    alt={track.title}
+                    className="w-12 h-12 rounded-xl object-cover shrink-0"
+                  />
+                  <div className="min-w-0 pr-2">
+                    <h4 className="text-sm font-semibold text-slate-100 group-hover:text-emerald-300 truncate">
+                      {track.title}
+                    </h4>
+                    <p className="text-xs text-zinc-400 truncate">{track.artist}</p>
+                  </div>
+                </div>
 
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-mono text-zinc-500">{track.duration || '3:30'}</span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddToPlaylist(track);
-                  }}
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
-                  title="Adicionar à playlist"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-xs font-mono text-zinc-500">{track.duration || '3:30'}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddToPlaylist(track);
+                    }}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                    title="Adicionar à playlist"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Related Artists */}

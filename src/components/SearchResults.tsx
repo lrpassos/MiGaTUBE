@@ -12,7 +12,7 @@ import {
   Music2,
   Check,
 } from 'lucide-react';
-import { Track, YouTubePlaylist } from '../types';
+import { Track, YouTubePlaylist, MusicSource } from '../types';
 import { storage } from '../lib/storage';
 
 interface SearchResultsProps {
@@ -24,9 +24,12 @@ interface SearchResultsProps {
   error?: string | null;
   currentTrack: Track | null;
   isPlaying: boolean;
+  searchQuery?: string;
+  searchSource?: MusicSource;
   onPlayTrack: (track: Track, allTracks: Track[]) => void;
   onPlayPlaylist?: (playlist: YouTubePlaylist) => void;
   onSelectQuery?: (query: string) => void;
+  onSelectSource?: (source: MusicSource) => void;
   onAddToPlaylist: (track: Track) => void;
   onOpenArtist?: (artistName: string) => void;
 }
@@ -40,9 +43,12 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   error,
   currentTrack,
   isPlaying,
+  searchQuery = '',
+  searchSource = 'all',
   onPlayTrack,
   onPlayPlaylist,
   onSelectQuery,
+  onSelectSource,
   onAddToPlaylist,
   onOpenArtist,
 }) => {
@@ -104,28 +110,107 @@ export const SearchResults: React.FC<SearchResultsProps> = ({
   const hasNoContent = results.length === 0 && playlists.length === 0;
 
   if (hasNoContent) {
+    const popularArtists = [
+      'Marília Mendonça',
+      'Coldplay',
+      'Queen',
+      'Adele',
+      'Alok',
+      'Tim Maia',
+      'Ludmilla',
+      'Imagine Dragons',
+      'Michael Jackson',
+      'Henrique e Juliano',
+      'Bob Marley',
+    ];
+
     return (
-      <div className="py-16 text-center space-y-3">
-        <div className="w-12 h-12 rounded-full bg-[#0c1e15] border border-emerald-950 flex items-center justify-center mx-auto text-zinc-500">
-          <Disc3 className="w-6 h-6" />
+      <div className="py-12 px-4 text-center max-w-lg mx-auto space-y-5 rounded-3xl bg-[#08120d]/80 border border-emerald-950/80">
+        <div className="w-14 h-14 rounded-2xl bg-emerald-950/50 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-400">
+          <Music2 className="w-7 h-7" />
         </div>
-        <p className="text-zinc-300 font-medium text-sm">Não encontramos resultados diretos.</p>
-        {suggestions.length > 0 && (
-          <div className="space-y-2 max-w-sm mx-auto pt-2">
-            <p className="text-xs text-zinc-400">Sugestões de busca:</p>
-            <div className="flex flex-wrap justify-center gap-1.5">
-              {suggestions.slice(0, 5).map((s, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => onSelectQuery?.(s)}
-                  className="px-3 py-1 rounded-full bg-emerald-950/80 hover:bg-emerald-500/20 border border-emerald-800 text-xs text-emerald-400 transition-colors"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+
+        <div className="space-y-1">
+          <h3 className="text-base font-bold text-white">
+            {searchQuery
+              ? `Nenhum resultado para "${searchQuery}"`
+              : 'Nenhum resultado encontrado'}
+          </h3>
+          <p className="text-xs text-zinc-400">
+            Você pode buscar qualquer artista, música ou álbum pelo nome, ou alternar entre as fontes de áudio.
+          </p>
+        </div>
+
+        {/* Quick source retry */}
+        {onSelectSource && (
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <span className="text-[11px] text-zinc-400 w-full mb-1">Experimente buscar em outra fonte:</span>
+            <button
+              type="button"
+              onClick={() => onSelectSource('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                searchSource === 'all'
+                  ? 'bg-emerald-500 text-black border-emerald-400'
+                  : 'bg-emerald-950/40 text-zinc-300 border-emerald-900/60 hover:border-emerald-500/50'
+              }`}
+            >
+              Todas as Fontes
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectSource('youtube')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                searchSource === 'youtube'
+                  ? 'bg-red-600 text-white border-red-500'
+                  : 'bg-emerald-950/40 text-zinc-300 border-emerald-900/60 hover:border-red-500/50'
+              }`}
+            >
+              YouTube
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectSource('soundcloud')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                searchSource === 'soundcloud'
+                  ? 'bg-orange-600 text-white border-orange-500'
+                  : 'bg-emerald-950/40 text-zinc-300 border-emerald-900/60 hover:border-orange-500/50'
+              }`}
+            >
+              SoundCloud
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectSource('jamendo')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                searchSource === 'jamendo'
+                  ? 'bg-teal-500 text-black border-teal-400'
+                  : 'bg-emerald-950/40 text-zinc-300 border-emerald-900/60 hover:border-teal-500/50'
+              }`}
+            >
+              Jamendo
+            </button>
           </div>
         )}
+
+        {/* Quick popular search suggestions */}
+        <div className="pt-2 border-t border-emerald-950/60 space-y-2">
+          <p className="text-xs text-zinc-400 flex items-center justify-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Sugestões populares para pesquisar:</span>
+          </p>
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {popularArtists.map((artist, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => onSelectQuery?.(artist)}
+                className="px-3 py-1 rounded-full bg-[#09150f] hover:bg-emerald-950/80 border border-emerald-950/80 hover:border-emerald-500/40 text-xs text-zinc-300 hover:text-emerald-300 transition-colors cursor-pointer"
+              >
+                {artist}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

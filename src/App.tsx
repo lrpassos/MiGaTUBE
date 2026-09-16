@@ -44,6 +44,7 @@ export function App() {
   const [correctedQuery, setCorrectedQuery] = useState<string | undefined>();
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Player state
   const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
@@ -74,6 +75,7 @@ export function App() {
     setSearchSource(source);
     setCurrentTab('search');
     setActiveArtistName(null);
+    setHasSearched(true);
     setIsSearching(true);
     setSearchError(null);
 
@@ -223,31 +225,36 @@ export function App() {
             <div className="space-y-6">
               <div>
                 <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight font-display">
-                  {searchQuery ? (
+                  {hasSearched && searchQuery ? (
                     <>
                       Resultados para "<span className="text-[#00ff88]">{searchQuery}</span>"
                     </>
                   ) : (
-                    'Explorar & Pesquisar'
+                    'Explorar Tendências & Artistas'
                   )}
                 </h1>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Resultados integrados e unificados: YouTube, SoundCloud e Jamendo Livre.
+                  {hasSearched && searchQuery
+                    ? 'Resultados unificados: YouTube, SoundCloud e Jamendo Livre.'
+                    : 'Pesquise qualquer artista, música ou álbum pelo nome no campo de busca acima.'}
                 </p>
               </div>
 
               <SearchResults
-                results={searchResults.length > 0 ? searchResults : FEATURED_TRACKS}
-                playlists={searchPlaylists}
+                results={hasSearched ? searchResults : FEATURED_TRACKS}
+                playlists={hasSearched ? searchPlaylists : []}
                 suggestions={searchSuggestions}
                 correctedQuery={correctedQuery}
                 isLoading={isSearching}
                 error={searchError}
+                searchQuery={searchQuery}
+                searchSource={searchSource}
                 currentTrack={player.currentTrack}
                 isPlaying={player.isPlaying}
                 onPlayTrack={(track, all) => player.playTrack(track, all)}
                 onPlayPlaylist={handlePlayYouTubePlaylist}
                 onSelectQuery={(q) => handleSearch(q, searchFilter, searchSource)}
+                onSelectSource={(src) => handleSearch(searchQuery || 'top músicas', searchFilter, src)}
                 onAddToPlaylist={(track) => setSelectedTrackForPlaylist(track)}
                 onOpenArtist={handleOpenArtist}
               />
