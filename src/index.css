@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-display: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #050706;
+    color: #e2e8f0;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #060e0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #123d24;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+/* Vinyl rotation animation */
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 4.5s linear infinite;
+}
+
+.paused {
+  animation-play-state: paused !important;
+}
+
+/* Glow effects */
+.neon-glow-sm {
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.25);
+}
+
+.neon-glow-md {
+  box-shadow: 0 0 24px rgba(0, 255, 136, 0.35);
+}
+
+.neon-text-glow {
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.45);
+}
+
+/* Safe areas for mobile devices */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0rem);
+}
